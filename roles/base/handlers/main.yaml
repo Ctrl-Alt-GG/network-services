@@ -1,0 +1,4 @@
+---
+- name: run Timedatectl
+  command: timedatectl set-ntp true
+...

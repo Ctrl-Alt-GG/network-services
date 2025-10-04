@@ -1,0 +1,8 @@
+---
+# defaults file for timedatectl
+timedatectl_timeservers: ['time.intra.tormakris.dev']
+
+timedatectl_timeservers_fallback: ['time.kfki.hu']
+
+timedatectl_timezone: 'Europe/Budapest'
+...

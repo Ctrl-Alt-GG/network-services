@@ -1,0 +1,10 @@
+---
+interfaces:
+  - enp1s0
+subnets:
+  - 192.168.128.0/24
+dns_servers:
+  - 192.168.129.53
+ntp_servers:
+  - 192.168.129.123
+...

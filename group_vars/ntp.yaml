@@ -1,0 +1,12 @@
+---
+ntp_upstreams:
+  - type: "server"
+    host: "time.cloudflare.com"
+    nts: true
+  - type: "pool"
+    host: "pool.ntp.org"
+    nts: false
+
+ntp_allow:
+  - "192.168.1.0/24"
+...

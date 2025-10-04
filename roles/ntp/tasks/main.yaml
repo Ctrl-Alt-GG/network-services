@@ -1,0 +1,39 @@
+---
+- name: Install chrony
+  ansible.builtin.dnf:
+    name: chrony
+    state: present
+
+- name: Allow NTP in default zone
+  ansible.posix.firewalld:
+    service: ntp
+    state: enabled
+    permanent: true
+    immediate: true
+
+- name: Ensure chrony state directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: chrony
+    group: chrony
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "/var/lib/chrony", mode: "0750" }
+    - { path: "/var/log/chrony", mode: "0750" }
+
+- name: Deploy chrony.conf
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart chronyd
+
+- name: Enable and start chronyd
+  ansible.builtin.systemd:
+    name: chronyd
+    enabled: true
+    state: started
+...

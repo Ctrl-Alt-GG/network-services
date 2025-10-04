@@ -1,0 +1,29 @@
+# {{ansible_managed}}
+server:
+  # Listen only on localhost (tightens exposure)
+  interface: 0.0.0.0
+  interface: ::0
+
+  # Allow only local queries
+  access-control: 127.0.0.0/8 allow
+  access-control: ::1 allow
+
+  # Privacy and hardening
+  qname-minimisation: yes
+  harden-glue: yes
+  harden-dnssec-stripped: yes
+  harden-below-nxdomain: yes
+  aggressive-nsec: yes
+  hide-identity: yes
+  hide-version: yes
+  minimal-responses: yes
+
+  # Enable DNSSEC trust anchor maintenance
+  auto-trust-anchor-file: "/var/lib/unbound/root.key"
+
+# Forward all queries to Quad9
+forward-zone:
+  name: "."
+{% for ip in upstreams %}
+  forward-addr: {{ ip }}
+{% endfor %}

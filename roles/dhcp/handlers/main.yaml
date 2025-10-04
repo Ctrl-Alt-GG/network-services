@@ -1,0 +1,11 @@
+---
+- name: Restart kea-dhcp4
+  ansible.builtin.systemd:
+    name: kea-dhcp4
+    state: restarted
+
+- name: Restart kea-ctrl-agent
+  ansible.builtin.systemd:
+    name: kea-ctrl-agent
+    state: restarted
+...

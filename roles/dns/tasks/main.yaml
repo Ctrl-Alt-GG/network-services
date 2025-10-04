@@ -1,0 +1,29 @@
+---
+- name: Install Unbound
+  ansible.builtin.dnf:
+    name: unbound
+    state: present
+
+- name: Allow DNS in default zone
+  ansible.posix.firewalld:
+    service: dns
+    state: enabled
+    permanent: true
+    immediate: true
+
+- name: Deploy unbound.conf
+  ansible.builtin.template:
+    src: templates/unbound.conf.j2
+    dest: /etc/unbound/unbound.conf
+    owner: root
+    group: root
+    mode: '0644'
+    validate: 'unbound-checkconf %s'
+  notify: Restart unbound
+
+- name: Enable and start Unbound
+  ansible.builtin.systemd:
+    name: unbound
+    state: started
+    enabled: true
+...

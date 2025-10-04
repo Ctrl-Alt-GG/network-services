@@ -1,0 +1,60 @@
+---
+- name: Install Kea DHCP server
+  ansible.builtin.dnf:
+    name: kea
+    state: present
+
+- name: Allow DHCP in default zone
+  ansible.posix.firewalld:
+    service: dhcp
+    state: enabled
+    permanent: true
+    immediate: true
+
+- name: Ensure Kea config dir
+  ansible.builtin.file:
+    path: /etc/kea
+    state: directory
+    owner: root
+    group: kea
+    mode: '0750'
+
+- name: Ensure Kea log dir
+  ansible.builtin.file:
+    path: /var/log/kea
+    state: directory
+    owner: kea
+    group: kea
+    mode: '0750'
+
+- name: Deploy kea-dhcp4.conf
+  ansible.builtin.template:
+    src: templates/kea-dhcp4.conf.j2
+    dest: /etc/kea/kea-dhcp4.conf
+    owner: root
+    group: kea
+    mode: '0640'
+    validate: 'jq . %s'
+  notify: Restart kea-dhcp4
+
+- name: Deploy kea-ctrl-agent.conf (localhost-only)
+  ansible.builtin.template:
+    src: templates/kea-ctrl-agent.conf.j2
+    dest: /etc/kea/kea-ctrl-agent.conf
+    owner: root
+    group: kea
+    mode: '0640'
+  notify: Restart kea-ctrl-agent
+
+- name: Enable and start kea-dhcp4
+  ansible.builtin.systemd:
+    name: kea-dhcp4
+    enabled: true
+    state: started
+
+- name: Enable and start kea-ctrl-agent
+  ansible.builtin.systemd:
+    name: kea-ctrl-agent
+    enabled: true
+    state: started
+...

@@ -1,0 +1,60 @@
+---
+- name: Disable root authentication
+  replace:
+    path: /etc/ssh/sshd_config
+    regexp: '#PermitRootLogin prohibit-password'
+    replace: 'PermitRootLogin no'
+
+- name: Disable X11 forwarding
+  replace:
+    path: /etc/ssh/sshd_config
+    regexp: 'X11Forwarding yes'
+    replace: 'X11Forwarding no'
+
+- name: Explicitly only listen on ipv4
+  replace:
+    path: /etc/ssh/sshd_config
+    regexp: '#AddressFamily any'
+    replace: 'AddressFamily inet'
+
+- name: "Restart sshd"
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+
+- name: Setup timesync config
+  template:
+    src: timesyncd.conf.template
+    dest: /etc/systemd/timesyncd.conf
+  notify: run Timedatectl
+  when: ansible_service_mgr == "systemd"
+
+- name: set Timezone
+  timezone: name={{ timedatectl_timezone }}
+  when: ansible_service_mgr == "systemd"
+
+- name: Reastart timesyncd to apply changes
+  when: ansible_service_mgr == "systemd"
+  ansible.posix.systemd:
+    state: restarted
+    daemon_reload: yes
+    name: systemd-timesyncd
+
+- name: Ensure firewalld is installed
+  ansible.builtin.package:
+    name: firewalld
+    state: present
+
+- name: Enable and start firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Allow SSH through the default zone
+  ansible.posix.firewalld:
+    service: ssh
+    state: enabled
+    permanent: true
+    immediate: true
+...

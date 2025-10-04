@@ -1,0 +1,16 @@
+# {{ansible_managed}}
+{% for src in ntp_upstreams %}
+{{ src.type | default('server') }} {{ src.host }} iburst{% if src.nts | default(false) %} nts{% endif %}
+{% endfor %}
+ntsdumpdir /var/lib/chrony
+driftfile /var/lib/chrony/drift
+makestep 1.0 3
+rtcsync
+leapsectz right/UTC
+{% for net in ntp_allow %}
+allow {{ net }}
+{% endfor %}
+cmdport 0
+bindcmdaddress 127.0.0.1
+bindcmdaddress ::1
+logdir /var/log/chrony
