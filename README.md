@@ -7,3 +7,4 @@ Basic network services, DNS, DHCP and NTP to be installed to either a virtual ma
 - Test
 - Lint
 - Pipeline
+- Lancache forwarding support in the DNS role
