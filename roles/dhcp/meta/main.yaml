@@ -4,7 +4,7 @@ galaxy_info:
   description: Network services role
   company: Ctrl-Alt-GG
   license: "All Rights Reserved"
-  min_ansible_version: "2.12"
+  min_ansible_version: "2.14"
   platforms:
     - name: EL
       versions:
@@ -13,9 +13,7 @@ galaxy_info:
   galaxy_tags:
     - networking
 
-dependencies:
-  - ansible.posix
-  - community.general
+dependencies: []
 
 collections:
   - ansible.posix
