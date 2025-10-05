@@ -28,6 +28,7 @@ provisioner:
       ansible_managed: "Ansible managed: {file} modified on %Y-%m-%d %H:%M:%S by {uid} on {host}"
       gathering: smart
       fact_caching: memory
+      become_method: su
     ssh_connection:
       pipelining: true
   inventory:
