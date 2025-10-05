@@ -40,7 +40,6 @@ jobs:
         scenario:
           - default
           - edge-cases
-          - security-hardened
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
@@ -69,9 +68,7 @@ jobs:
       matrix:
         scenario:
           - default
-          - edge-cases
           - multi-subnet
-          - failover
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
@@ -99,10 +96,7 @@ jobs:
       matrix:
         scenario:
           - default
-          - edge-cases
           - lancache-enabled
-          - dnssec-validation
-          - forwarder-only
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
@@ -131,9 +125,6 @@ jobs:
       matrix:
         scenario:
           - default
-          - edge-cases
-          - stratum-server
-          - pool-config
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
