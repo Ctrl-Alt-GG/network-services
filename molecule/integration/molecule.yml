@@ -3,21 +3,14 @@ dependency:
   name: galaxy
   options:
     requirements-file: requirements.yaml
-driver:
-  name: docker
 platforms:
   - name: rocky10-integration
     image: quay.io/rockylinux/rockylinux:10
-    pre_build_image: true
-    privileged: true
-    command: "/usr/sbin/init"
+    command: "/sbin/init"
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
     capabilities:
       - SYS_ADMIN
-    security_opts:
-      - seccomp=unconfined
     tmpfs:
       - /run
       - /tmp
@@ -70,6 +63,7 @@ verifier:
 scenario:
   test_sequence:
     - dependency
+    - create
     - prepare
     - converge
     - verify
