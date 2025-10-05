@@ -28,8 +28,6 @@ platforms:
       - 123/udp
 provisioner:
   name: ansible
-  options:
-    disable_schema: true
   config_options:
     defaults:
       callbacks_enabled: profile_tasks,timer,yaml
