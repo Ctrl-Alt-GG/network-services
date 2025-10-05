@@ -6,7 +6,7 @@ dependency:
 platforms:
   - name: rocky10-integration
     image: quay.io/rockylinux/rockylinux:10
-    command: "/sbin/init"
+    command: "/usr/sbin/init"
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     capabilities:
