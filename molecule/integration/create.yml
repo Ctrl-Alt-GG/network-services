@@ -39,11 +39,9 @@
         log_driver: "{{ item.log_driver | default('json-file') }}"
         log_options: "{{ item.log_options | default({}) }}"
         cgroupns_mode: "{{ item.cgroupns_mode | default(omit) }}"
-        pre_build_image: "{{ item.pre_build_image | default(true) }}"
         detach: true
         interactive: "{{ item.interactive | default(false) }}"
         tty: "{{ item.tty | default(false) }}"
-        stdin_open: "{{ item.stdin_open | default(false) }}"
         auto_remove: "{{ item.auto_remove | default(false) }}"
         read_only: "{{ item.read_only | default(false) }}"
         init: "{{ item.init | default(false) }}"
