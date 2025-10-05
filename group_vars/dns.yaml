@@ -1,6 +1,6 @@
 ---
 lancache:
-  enabled: true
+  enabled: false
   ipaddrs:
     - 192.168.69.28
 upstreams:

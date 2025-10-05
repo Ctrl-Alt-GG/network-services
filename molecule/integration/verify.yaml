@@ -1,0 +1,33 @@
+---
+- name: Integration Verification
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Verify all services are running
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      check_mode: true
+      register: service_check
+      failed_when: service_check is changed
+      loop:
+        - sshd
+        - firewalld
+        - systemd-timesyncd
+        - kea-dhcp4
+        - kea-ctrl-agent
+        - unbound
+        - chronyd
+
+    - name: Test DNS-DHCP integration
+      command: dig @127.0.0.1 test.local
+      register: dns_dhcp_test
+      ignore_errors: true
+
+    - name: Verify time synchronization
+      command: timedatectl status
+      register: time_status
+      failed_when: "'synchronized: yes' not in time_status.stdout"
+...

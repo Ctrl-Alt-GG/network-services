@@ -19,8 +19,8 @@
     group: chrony
     mode: "{{ item.mode }}"
   loop:
-    - { path: "/var/lib/chrony", mode: "0750" }
-    - { path: "/var/log/chrony", mode: "0750" }
+    - {path: "/var/lib/chrony", mode: "0750"}
+    - {path: "/var/log/chrony", mode: "0750"}
 
 - name: Deploy chrony.conf
   ansible.builtin.template:

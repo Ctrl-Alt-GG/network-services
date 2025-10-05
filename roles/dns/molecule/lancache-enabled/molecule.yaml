@@ -24,7 +24,7 @@ provisioner:
     host_vars:
       rocky10-dns-default:
         lancache:
-          enabled: false
+          enabled: true
           ipaddrs:
             - 192.168.69.28
         upstreams:

@@ -4,7 +4,7 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: rocky10-dns-default
+  - name: rocky10-base-edge
     image: quay.io/rockylinux/rockylinux:10
     pre_build_image: true
     privileged: true
@@ -15,21 +15,14 @@ platforms:
     tmpfs:
       - /run
       - /tmp
-    exposed_ports:
-      - 53/tcp
-      - 53/udp
 provisioner:
   name: ansible
   inventory:
     host_vars:
-      rocky10-dns-default:
-        lancache:
-          enabled: false
-          ipaddrs:
-            - 192.168.69.28
-        upstreams:
-          - 1.1.1.1
-          - 9.9.9.9
+      rocky10-base-edge:
+        timedatectl_timezone: 'America/New_York'
+        timedatectl_timeservers: []
+        timedatectl_timeservers_fallback: ['192.168.1.1']
 verifier:
   name: ansible
 ...

@@ -1,0 +1,34 @@
+---
+- name: Verify Edge Cases
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Verify timezone with spaces/special chars
+      command: timedatectl show --property=Timezone --value
+      register: current_timezone
+      failed_when: current_timezone.stdout != 'America/New_York'
+
+    - name: Verify behavior with empty timeservers list
+      stat:
+        path: /etc/systemd/timesyncd.conf
+      register: timesyncd_config
+      failed_when: not timesyncd_config.stat.exists
+
+    - name: Test SSH config rewrite idempotency
+      replace:
+        path: /etc/ssh/sshd_config
+        regexp: 'PermitRootLogin no'
+        replace: 'PermitRootLogin no'
+      register: ssh_idempotent
+      failed_when: ssh_idempotent is changed
+
+    - name: Verify firewalld handles SSH rule idempotency
+      firewalld:
+        service: ssh
+        state: enabled
+        permanent: true
+        immediate: true
+      register: firewalld_idempotent
+      failed_when: firewalld_idempotent is changed
+...

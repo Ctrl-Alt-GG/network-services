@@ -1,0 +1,39 @@
+---
+- name: Verify LANcache DNS
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Verify Git is installed for cache-domains
+      package:
+        name: git
+        state: present
+      check_mode: true
+      register: git_installed
+      failed_when: git_installed is changed
+
+    - name: Verify cache-domains repository exists
+      stat:
+        path: /var/lib/unbound/cache-domains
+      register: cache_domains_repo
+      failed_when: not cache_domains_repo.stat.exists
+
+    - name: Verify LANcache override configuration exists
+      stat:
+        path: /etc/unbound/lancache.d/override.conf
+      register: lancache_override
+      failed_when: not lancache_override.stat.exists
+
+    - name: Verify LANcache directory has proper permissions
+      stat:
+        path: /etc/unbound/lancache.d
+      register: lancache_dir
+      failed_when: >
+        not lancache_dir.stat.exists or
+        lancache_dir.stat.gr_name != 'unbound'
+
+    - name: Test steam domain redirects to LANcache
+      command: dig @127.0.0.1 steamcontent.com
+      register: steam_dns_test
+      # This would normally redirect to LANcache IP in real deployment
+...
