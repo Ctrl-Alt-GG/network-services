@@ -24,7 +24,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install ansible ansible-lint yamllint
-          ansible-galaxy install -r requirements.yml
+          ansible-galaxy install -r requirements.yaml
       - name: Run yamllint
         run: yamllint .
       - name: Run ansible-lint
@@ -54,7 +54,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install "molecule[docker]" ansible docker
-          ansible-galaxy install -r requirements.yml
+          ansible-galaxy install -r requirements.yaml
 
       - name: Run Molecule tests
         run: molecule test -s ${{ matrix.scenario }}
@@ -116,7 +116,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install "molecule[docker]" ansible docker dig
-          ansible-galaxy install -r requirements.yml
+          ansible-galaxy install -r requirements.yaml
 
       - name: Run Molecule tests
         run: molecule test -s ${{ matrix.scenario }}
@@ -147,7 +147,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install "molecule[docker]" ansible docker
-          ansible-galaxy install -r requirements.yml
+          ansible-galaxy install -r requirements.yaml
 
       - name: Run Molecule tests
         run: molecule test -s ${{ matrix.scenario }}
@@ -170,7 +170,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install "molecule[docker]" ansible docker
-          ansible-galaxy install -r requirements.yml
+          ansible-galaxy install -r requirements.yaml
 
       - name: Run Full Integration Test
         run: molecule test -s integration
