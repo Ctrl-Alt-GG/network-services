@@ -46,9 +46,7 @@ jobs:
       - name: Install test dependencies
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install ansible docker
-          python3 -m pip install molecule==25.9.0
-          python3 -m pip install molecule-plugins[docker]==23.5.3
+          python3 -m pip install molecule ansible docker "molecule-plugins[docker]"
           ansible-galaxy install -r requirements.yaml
 
       - name: Verify molecule installation
