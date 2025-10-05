@@ -1,0 +1,9 @@
+# {{ansible_managed}}
+server:
+{% for raw in lancache_domains %}
+{%   set zone = (raw.startswith('*.') | ternary(raw[2:], raw)) %}
+  local-zone: "{{ zone }}" redirect
+{%   for ip in lancache.ipaddrs | default([]) %}
+  local-data: "{{ zone }} A {{ ip }}"
+{%   endfor %}
+{% endfor %}

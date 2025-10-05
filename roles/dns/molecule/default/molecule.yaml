@@ -1,0 +1,43 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+lint: |
+  set -e
+  ansible-lint
+
+platforms:
+  - name: rock10-systemd
+    image: "rockylinux/rockylinux:10"
+    pre_build_image: true
+    privileged: true
+    command: /sbin/init
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    tmpfs:
+      - /run
+      - /tmp
+    environment:
+      container: docker
+
+provisioner:
+  name: ansible
+  playbooks:
+    prepare: prepare.yml
+    converge: converge.yml
+  inventory:
+    hosts:
+      all:
+        hosts:
+          rock10-systemd: {}
+  log: true
+
+verifier:
+  name: testinfra
+  options:
+    verbose: true
+  directory: ./tests
+...

@@ -1,7 +1,8 @@
 ---
 lancache:
   enabled: true
-  ipaddr: 192.168.69.123
+  ipaddrs:
+    - 192.168.69.28
 upstreams:
   - 192.168.69.18
   - 192.168.69.3

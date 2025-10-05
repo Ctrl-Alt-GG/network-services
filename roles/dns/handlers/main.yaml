@@ -3,4 +3,9 @@
   ansible.builtin.systemd:
     name: unbound
     state: restarted
+
+- name: Reload unbound
+  ansible.builtin.service:
+    name: unbound
+    state: reloaded
 ...

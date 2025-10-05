@@ -11,6 +11,26 @@
     permanent: true
     immediate: true
 
+- name: Ensure config directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: unbound
+    mode: "0750"
+  loop:
+    - /etc/unbound
+    - /etc/unbound/conf.d
+    - /etc/unbound/lancache.d
+    - /var/lib/unbound
+
+- name: Bootstrap DNSSEC root trust anchor if missing
+  ansible.builtin.command: >
+    unbound-anchor -a /var/lib/unbound/root.key
+  args:
+    creates: /var/lib/unbound/root.key
+  notify: Restart unbound
+
 - name: Deploy unbound.conf
   ansible.builtin.template:
     src: templates/unbound.conf.j2
@@ -20,6 +40,44 @@
     mode: '0644'
     validate: 'unbound-checkconf %s'
   notify: Restart unbound
+
+- name: Install Git
+  ansible.builtin.dnf:
+    name: git
+    state: present
+  when: lancache.enabled | default(false)
+
+- name: Clone uklans/cache-domains
+  ansible.builtin.git:
+    repo: "{{ cache_domains_repo }}"
+    dest: /var/lib/unbound/cache-domains
+    version: "{{ cache_domains_branch }}"
+    update: yes
+    force: yes
+  when: lancache.enabled | default(false)
+
+- name: Aggregate cache domain list (strip comments/blank, lowercase, unique)
+  ansible.builtin.shell: |
+    set -eo pipefail
+    find /var/lib/unbound/cache-domains -type f -name "*.txt" -print0 \
+    | xargs -0 awk '!/^(#|$)/ {print tolower($0)}' \
+    | sed 's/[[:space:]]\+$//' \
+    | sort -u
+  register: cache_domains_list
+  changed_when: false
+  when: lancache.enabled | default(false)
+
+- name: Render LANcache redirect overrides
+  ansible.builtin.template:
+    src: lancache-redirect.conf.j2
+    dest: /etc/unbound/lancache.d/override.conf
+    owner: root
+    group: unbound
+    mode: "0640"
+  vars:
+    lancache_domains: "{{ cache_domains_list.stdout_lines }}"
+  notify: Reload unbound
+  when: lancache.enabled | default(false)
 
 - name: Enable and start Unbound
   ansible.builtin.systemd:
