@@ -40,6 +40,8 @@ jobs:
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
+        with:
+          path: "${{ github.repository }}"
 
       - name: Run Molecule Integration Test
         uses: gofrolist/molecule-action@v2
