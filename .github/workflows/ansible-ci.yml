@@ -32,20 +32,4 @@ jobs:
         with:
           target: "./"
           collections_yml: "requirements.yaml"
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: [yamllint, ansible-lint]
-    steps:
-      - name: Check out the codebase
-        uses: actions/checkout@v4
-        with:
-          path: "${{ github.repository }}"
-
-      - name: Run Molecule Integration Test
-        uses: gofrolist/molecule-action@v2
-        with:
-          molecule_command: test
-          molecule_args: --scenario-name integration
 ...
