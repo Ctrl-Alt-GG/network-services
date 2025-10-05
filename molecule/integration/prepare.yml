@@ -1,0 +1,25 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update package cache
+      ansible.builtin.dnf:
+        update_cache: true
+
+    - name: Install basic packages for testing
+      ansible.builtin.dnf:
+        name:
+          - systemd
+          - openssh-server
+          - bind-utils
+        state: present
+
+    - name: Ensure systemd is running # noqa ignore-errors
+      ansible.builtin.systemd:
+        name: systemd-logind
+        state: started
+        enabled: true
+      ignore_errors: true
+...

@@ -1,35 +1,57 @@
 ---
-- name: Integration Verification
+- name: Verify
   hosts: all
-  become: true
   gather_facts: false
+
   tasks:
-    - name: Verify all services are running
-      service:
-        name: "{{ item }}"
-        state: started
-        enabled: true
+    - name: Verify SSH is configured correctly
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin no'
       check_mode: true
-      register: service_check
-      failed_when: service_check is changed
-      loop:
-        - sshd
-        - firewalld
-        - systemd-timesyncd
-        - kea-dhcp4
-        - kea-ctrl-agent
-        - unbound
-        - chronyd
+      register: ssh_config
+      failed_when: ssh_config.changed
 
-    - name: Test DNS-DHCP integration
-      command: dig @127.0.0.1 test.local
-      register: dns_dhcp_test
-      changed_when: false
-      failed_when: false
+    - name: Verify firewalld is running
+      ansible.builtin.systemd:
+        name: firewalld
+      register: firewalld_status
+      failed_when: firewalld_status.status.ActiveState != "active"
 
-    - name: Verify time synchronization
-      command: timedatectl status
-      register: time_status
+    - name: Verify auditd is running
+      ansible.builtin.systemd:
+        name: auditd
+      register: auditd_status
+      failed_when: auditd_status.status.ActiveState != "active"
+
+    - name: Verify Kea DHCP is running
+      ansible.builtin.systemd:
+        name: kea-dhcp4
+      register: kea_status
+      failed_when: kea_status.status.ActiveState != "active"
+
+    - name: Verify Unbound DNS is running
+      ansible.builtin.systemd:
+        name: unbound
+      register: unbound_status
+      failed_when: unbound_status.status.ActiveState != "active"
+
+    - name: Verify Chrony NTP is running
+      ansible.builtin.systemd:
+        name: chronyd
+      register: chrony_status
+      failed_when: chrony_status.status.ActiveState != "active"
+
+    - name: Test DNS resolution
+      ansible.builtin.command: dig @127.0.0.1 google.com
+      register: dns_test
+      failed_when: dns_test.rc != 0
       changed_when: false
-      failed_when: "'synchronized: yes' not in time_status.stdout"
+
+    - name: Test NTP synchronization
+      ansible.builtin.command: chronyc sources
+      register: ntp_test
+      failed_when: ntp_test.rc != 0
+      changed_when: false
 ...

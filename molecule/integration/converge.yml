@@ -1,0 +1,49 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+
+  vars:
+    ntp_upstreams:
+      - type: "server"
+        host: "time.cloudflare.com"
+        nts: true
+    ntp_allow:
+      - 127.0.0.1
+      - 10.0.0.0/8
+    lancache:
+      enabled: false
+      ipaddrs:
+        - 192.168.69.28
+    upstreams:
+      - 1.1.1.1
+      - 9.9.9.9
+    interfaces:
+      - eth0
+    subnets:
+      - 192.168.128.0/24
+    dns_servers:
+      - 192.168.129.53
+    ntp_servers:
+      - 192.168.129.123
+    timedatectl_timezone: 'UTC'
+    timedatectl_timeservers: ['pool.ntp.org']
+    timedatectl_timeservers_fallback: ['time.nist.gov']
+
+  tasks:
+    - name: Include base role
+      ansible.builtin.include_role:
+        name: base
+
+    - name: Include DHCP role
+      ansible.builtin.include_role:
+        name: dhcp
+
+    - name: Include DNS role
+      ansible.builtin.include_role:
+        name: dns
+
+    - name: Include NTP role
+      ansible.builtin.include_role:
+        name: ntp
+...

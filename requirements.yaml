@@ -4,4 +4,6 @@ collections:
     version: ">=1.0.0"
   - name: community.general
     version: ">=1.0.0"
+  - name: community.docker
+    version: ">=3.0.2"
 ...

@@ -46,10 +46,19 @@ jobs:
       - name: Install test dependencies
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install "molecule[docker]" ansible docker
+          python3 -m pip install "molecule[docker]" ansible docker "molecule-plugins[docker]"
           ansible-galaxy install -r requirements.yaml
+
+      - name: Verify molecule installation
+        run: |
+          molecule --version
+          molecule drivers
 
       - name: Run Full Integration Test
         run: molecule test -s integration
         working-directory: .
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+          MOLECULE_NO_LOG: 'false'
 ...
