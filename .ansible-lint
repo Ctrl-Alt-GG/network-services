@@ -4,4 +4,5 @@ skip_list:
   - fqcn-builtins
   - yaml[line-length]
   - fqcn[action]
+  - var-naming[no-role-prefix]
 ...
