@@ -1,5 +1,7 @@
+---
 skip_list:
   - experimental
   - fqcn-builtins
   - yaml[line-length]
   - fqcn[action]
+...

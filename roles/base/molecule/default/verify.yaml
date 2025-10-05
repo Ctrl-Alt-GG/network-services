@@ -51,6 +51,7 @@
     - name: Verify SSH is allowed in firewalld
       command: firewall-cmd --list-services
       register: firewall_services
+      changed_when: false
       failed_when: "'ssh' not in firewall_services.stdout"
 
     - name: Verify timesyncd configuration exists
@@ -62,6 +63,7 @@
     - name: Verify timezone is set correctly
       command: timedatectl show --property=Timezone --value
       register: current_timezone
+      changed_when: false
       failed_when: current_timezone.stdout != 'UTC'
 
     - name: Verify timesyncd is enabled and running

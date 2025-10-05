@@ -35,5 +35,5 @@
     - name: Test steam domain redirects to LANcache
       command: dig @127.0.0.1 steamcontent.com
       register: steam_dns_test
-      # This would normally redirect to LANcache IP in real deployment
+      changed_when: false
 ...

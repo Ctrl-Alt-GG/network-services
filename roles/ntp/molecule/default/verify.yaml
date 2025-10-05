@@ -43,18 +43,18 @@
     - name: Verify NTP is allowed in firewalld
       command: firewall-cmd --list-services
       register: firewall_services
+      changed_when: false
       failed_when: "'ntp' not in firewall_services.stdout"
 
     - name: Test NTP functionality
       command: chrony sources
       register: ntp_sources
       failed_when: ntp_sources.rc != 0
-      ignore_errors: true
+      changed_when: false
 
     - name: Verify chrony is listening on port 123
       wait_for:
         port: 123
         proto: udp
         timeout: 10
-      ignore_errors: true
 ...

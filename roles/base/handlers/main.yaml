@@ -1,4 +1,5 @@
 ---
-- name: run Timedatectl
+- name: Run timedatectl
   command: timedatectl set-ntp true
+  changed_when: false
 ...

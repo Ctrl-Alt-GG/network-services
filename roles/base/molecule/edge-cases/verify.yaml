@@ -7,6 +7,7 @@
     - name: Verify timezone with spaces/special chars
       command: timedatectl show --property=Timezone --value
       register: current_timezone
+      changed_when: false
       failed_when: current_timezone.stdout != 'America/New_York'
 
     - name: Verify behavior with empty timeservers list
@@ -24,7 +25,7 @@
       failed_when: ssh_idempotent is changed
 
     - name: Verify firewalld handles SSH rule idempotency
-      firewalld:
+      ansible.posix.firewalld:
         service: ssh
         state: enabled
         permanent: true

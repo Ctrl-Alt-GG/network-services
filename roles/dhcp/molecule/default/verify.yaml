@@ -39,6 +39,7 @@
     - name: Validate kea-dhcp4.conf JSON syntax
       command: jq . /etc/kea/kea-dhcp4.conf
       register: kea_json_validation
+      changed_when: false
       failed_when: kea_json_validation.rc != 0
 
     - name: Verify kea-ctrl-agent.conf exists
@@ -68,6 +69,7 @@
     - name: Verify DHCP is allowed in firewalld
       command: firewall-cmd --list-services
       register: firewall_services
+      changed_when: false
       failed_when: "'dhcp' not in firewall_services.stdout"
 
     - name: Check Kea DHCP server is listening on port 67
