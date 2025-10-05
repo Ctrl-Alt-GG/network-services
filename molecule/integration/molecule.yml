@@ -69,8 +69,6 @@ provisioner:
         timedatectl_timeservers_fallback: ['time.nist.gov']
 verifier:
   name: ansible
-  lint:
-    name: ansible-lint
 scenario:
   test_sequence:
     - dependency
