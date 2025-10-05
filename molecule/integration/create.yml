@@ -13,14 +13,55 @@
         name: "{{ item.name }}"
         image: "{{ item.image }}"
         state: started
-        command: sleep 1d
-        log_driver: json-file
+        command: "{{ item.command | default('sleep 1d') }}"
+        privileged: "{{ item.privileged | default(false) }}"
+        capabilities: "{{ item.capabilities | default([]) }}"
+        security_opts: "{{ item.security_opts | default([]) }}"
+        volumes: "{{ item.volumes | default([]) }}"
+        tmpfs: "{{ item.tmpfs | default([]) }}"
+        exposed_ports: "{{ item.exposed_ports | default([]) }}"
+        published_ports: "{{ item.published_ports | default([]) }}"
+        env: "{{ item.env | default({}) }}"
+        hostname: "{{ item.hostname | default(item.name) }}"
+        networks: "{{ item.networks | default([]) }}"
+        network_mode: "{{ item.network_mode | default('bridge') }}"
+        dns_servers: "{{ item.dns_servers | default([]) }}"
+        dns_search_domains: "{{ item.dns_search_domains | default([]) }}"
+        restart_policy: "{{ item.restart_policy | default('no') }}"
+        memory: "{{ item.memory | default(omit) }}"
+        memory_swap: "{{ item.memory_swap | default(omit) }}"
+        cpus: "{{ item.cpus | default(omit) }}"
+        ulimits: "{{ item.ulimits | default([]) }}"
+        sysctls: "{{ item.sysctls | default({}) }}"
+        working_dir: "{{ item.working_dir | default(omit) }}"
+        user: "{{ item.user | default(omit) }}"
+        labels: "{{ item.labels | default({}) }}"
+        log_driver: "{{ item.log_driver | default('json-file') }}"
+        log_options: "{{ item.log_options | default({}) }}"
+        cgroupns_mode: "{{ item.cgroupns_mode | default(omit) }}"
+        pre_build_image: "{{ item.pre_build_image | default(true) }}"
+        detach: true
+        interactive: "{{ item.interactive | default(false) }}"
+        tty: "{{ item.tty | default(false) }}"
+        stdin_open: "{{ item.stdin_open | default(false) }}"
+        auto_remove: "{{ item.auto_remove | default(false) }}"
+        read_only: "{{ item.read_only | default(false) }}"
+        init: "{{ item.init | default(false) }}"
       register: result
       loop: "{{ molecule_yml.platforms }}"
 
-    - name: Print some info
+    - name: Print container creation info
       ansible.builtin.debug:
-        msg: "{{ result.results }}"
+        msg: |
+          Container: {{ item.container.Name }}
+          State: {{ item.container.State.Status }}
+          Image: {{ item.container.Config.Image }}
+          Command: {{ item.container.Config.Cmd }}
+          Privileged: {{ item.container.HostConfig.Privileged }}
+        verbosity: 1
+      loop: "{{ result.results }}"
+      loop_control:
+        label: "{{ item.container.Name }}"
 
     - name: Fail if container is not running
       when: >
@@ -77,4 +118,15 @@
     - name: Display uname info
       ansible.builtin.debug:
         msg: "{{ result.stdout }}"
+
+    - name: Verify container capabilities
+      ansible.builtin.raw: cat /proc/self/status | grep Cap
+      register: caps_result
+      changed_when: false
+      failed_when: false
+
+    - name: Display container capabilities
+      ansible.builtin.debug:
+        msg: "Container capabilities: {{ caps_result.stdout_lines }}"
+        verbosity: 1
 ...

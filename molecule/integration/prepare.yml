@@ -2,8 +2,15 @@
 - name: Prepare
   hosts: all
   become: true
+  become_method: su
 
   tasks:
+    - name: Install sudo first
+      ansible.builtin.dnf:
+        name: sudo
+        state: present
+      become_method: su
+
     - name: Update package cache
       ansible.builtin.dnf:
         update_cache: true
