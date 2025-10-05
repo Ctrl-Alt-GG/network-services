@@ -11,16 +11,22 @@
     permanent: true
     immediate: true
 
-- name: Ensure chrony state directories exist
+- name: Ensure chrony directories exist
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory
-    owner: chrony
-    group: chrony
+    owner: "{{ item.owner | default('chrony') }}"
+    group: "{{ item.group | default('chrony') }}"
     mode: "{{ item.mode }}"
   loop:
-    - {path: "/var/lib/chrony", mode: "0750"}
-    - {path: "/var/log/chrony", mode: "0750"}
+    - path: "/var/lib/chrony"
+      mode: "0755"
+    - path: "/var/log/chrony"
+      mode: "0755"
+    - path: "/run/chrony"
+      mode: "0755"
+      owner: "chrony"
+      group: "chrony"
 
 - name: Deploy chrony.conf
   ansible.builtin.template:

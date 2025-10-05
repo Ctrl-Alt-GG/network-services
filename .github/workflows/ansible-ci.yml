@@ -56,7 +56,7 @@ jobs:
           ansible-galaxy install -r requirements.yaml
 
       - name: Run Molecule tests
-        run: molecule test -s ${{ matrix.scenario }}
+        run: molecule test -s ${{ matrix.scenario }} --molecule-file molecule/${{ matrix.scenario }}/molecule.yaml
         working-directory: roles/base
 
   molecule-dhcp:
@@ -84,7 +84,7 @@ jobs:
           python3 -m pip install "molecule[docker]" ansible docker jq
 
       - name: Run Molecule tests
-        run: molecule test -s ${{ matrix.scenario }}
+        run: molecule test -s ${{ matrix.scenario }} --molecule-file molecule/${{ matrix.scenario }}/molecule.yaml
         working-directory: roles/dhcp
 
   molecule-dns:
@@ -113,7 +113,7 @@ jobs:
           ansible-galaxy install -r requirements.yaml
 
       - name: Run Molecule tests
-        run: molecule test -s ${{ matrix.scenario }}
+        run: molecule test -s ${{ matrix.scenario }} --molecule-file molecule/${{ matrix.scenario }}/molecule.yaml
         working-directory: roles/dns
 
   molecule-ntp:
@@ -141,7 +141,7 @@ jobs:
           ansible-galaxy install -r requirements.yaml
 
       - name: Run Molecule tests
-        run: molecule test -s ${{ matrix.scenario }}
+        run: molecule test -s ${{ matrix.scenario }} --molecule-file molecule/${{ matrix.scenario }}/molecule.yaml
         working-directory: roles/ntp
 
   integration-tests:

@@ -29,22 +29,30 @@
 
 - name: Deploy kea-dhcp4.conf
   ansible.builtin.template:
-    src: templates/kea-dhcp4.conf.j2
+    src: kea-dhcp4.conf.j2
     dest: /etc/kea/kea-dhcp4.conf
     owner: root
     group: kea
     mode: '0640'
-    validate: 'jq . %s'
+    validate: 'kea-dhcp4 -t %s'
+    backup: true
   notify: Restart kea-dhcp4
 
 - name: Deploy kea-ctrl-agent.conf (localhost-only)
   ansible.builtin.template:
-    src: templates/kea-ctrl-agent.conf.j2
+    src: kea-ctrl-agent.conf.j2
     dest: /etc/kea/kea-ctrl-agent.conf
     owner: root
     group: kea
     mode: '0640'
+    backup: true
   notify: Restart kea-ctrl-agent
+
+- name: Verify kea-dhcp4 configuration
+  ansible.builtin.command: kea-dhcp4 -t /etc/kea/kea-dhcp4.conf
+  register: kea_config_test
+  failed_when: kea_config_test.rc != 0
+  changed_when: false
 
 - name: Enable and start kea-dhcp4
   ansible.builtin.systemd:

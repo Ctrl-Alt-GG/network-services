@@ -52,19 +52,34 @@
     repo: "{{ cache_domains_repo }}"
     dest: /var/lib/unbound/cache-domains
     version: "{{ cache_domains_branch }}"
-    update: yes
-    force: yes
+    update: true
+    force: true
+    depth: 1
+  register: git_clone_result
+  retries: 3
+  delay: 10
+  when: lancache.enabled | default(false)
+  become_user: unbound
+
+- name: Find cache domain files
+  ansible.builtin.find:
+    paths: /var/lib/unbound/cache-domains
+    patterns: "*.txt"
+    recurse: true
+  register: cache_domain_files
   when: lancache.enabled | default(false)
 
-- name: Aggregate cache domain list (strip comments/blank, lowercase, unique)
+- name: Read and process cache domain files
   ansible.builtin.shell: |
-    set -eo pipefail
-    find /var/lib/unbound/cache-domains -type f -name "*.txt" -print0 \
-    | xargs -0 awk '!/^(#|$)/ {print tolower($0)}' \
-    | sed 's/[[:space:]]\+$//' \
-    | sort -u
-  register: cache_domains_list
+    awk '!/^(#|$)/ {print tolower($0)}' {{ item.path }} | sed 's/[[:space:]]\+$//'
+  register: domain_contents
+  loop: "{{ cache_domain_files.files }}"
+  when: lancache.enabled | default(false)
   changed_when: false
+
+- name: Create unified domain list
+  ansible.builtin.set_fact:
+    cache_domains_list: "{{ domain_contents.results | map(attribute='stdout_lines') | list | flatten | unique | sort }}"
   when: lancache.enabled | default(false)
 
 - name: Render LANcache redirect overrides
