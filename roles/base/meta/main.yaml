@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Ctrl-Alt-GG
-  description: Network services role for [service_name]
+  description: Network services role
   company: Ctrl-Alt-GG
   license: "All Rights Reserved"
   min_ansible_version: "2.12"
