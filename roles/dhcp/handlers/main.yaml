@@ -8,4 +8,17 @@
   ansible.builtin.systemd:
     name: kea-ctrl-agent
     state: restarted
+
+- name: Restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+
+- name: Systemctl daemon-reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restorecon kea
+  ansible.builtin.command: restorecon -R /etc/kea /var/log/kea /var/lib/kea
+  changed_when: false
 ...

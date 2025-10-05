@@ -1,6 +1,6 @@
 ---
 - name: Install Unbound
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name: unbound
     state: present
 
@@ -95,6 +95,67 @@
     lancache_domains: "{{ cache_domains_list.stdout_lines }}"
   notify: Reload unbound
   when: lancache.enabled | default(false)
+
+- name: Install unbound SELinux policy
+  ansible.builtin.package:
+    name: unbound-selinux
+    state: present
+  when: ansible_selinux.status == "enabled"
+
+- name: Set SELinux contexts for unbound
+  community.general.sefcontext:
+    target: "{{ item.path }}"
+    setype: "{{ item.setype }}"
+    state: present
+  loop:
+    - path: "/etc/unbound(/.*)?"
+      setype: "named_conf_t"
+    - path: "/var/lib/unbound(/.*)?"
+      setype: "named_var_lib_t"
+  notify: Restorecon unbound
+
+- name: Configure DNS rate limiting in firewall
+  ansible.posix.firewalld:
+    rich_rule: 'rule service name="dns" accept limit value="1000/s"'
+    state: enabled
+    permanent: true
+    immediate: true
+
+- name: Add DNS audit rules
+  ansible.builtin.blockinfile:
+    path: /etc/audit/rules.d/dns.rules
+    create: true
+    mode: '0640'
+    block: |
+      -w /etc/unbound/ -p wa -k dns_config
+      -w /var/lib/unbound/ -p wa -k dns_data
+      -a always,exit -F arch=b64 -S connect -F a2=16 -F success=1 -k dns_queries
+  notify: Restart auditd
+
+- name: Create systemd override directory for unbound
+  ansible.builtin.file:
+    path: /etc/systemd/system/unbound.service.d
+    state: directory
+    mode: '0755'
+
+- name: Configure unbound systemd security
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/unbound.service.d/security.conf
+    mode: '0644'
+    content: |
+      [Service]
+      NoNewPrivileges=true
+      ProtectSystem=strict
+      ProtectHome=true
+      ProtectKernelTunables=true
+      ProtectKernelModules=true
+      ProtectControlGroups=true
+      ReadWritePaths=/var/lib/unbound
+      PrivateDevices=true
+      RestrictRealtime=true
+  notify:
+    - Systemctl daemon-reload
+    - Restart unbound
 
 - name: Enable and start Unbound
   ansible.builtin.systemd:

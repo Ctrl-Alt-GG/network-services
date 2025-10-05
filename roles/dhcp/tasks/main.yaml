@@ -54,6 +54,72 @@
   failed_when: kea_config_test.rc != 0
   changed_when: false
 
+# SELinux context for Kea
+- name: Set SELinux contexts for Kea directories
+  community.general.sefcontext:
+    target: "{{ item.path }}"
+    setype: "{{ item.setype }}"
+    state: present
+  loop:
+    - path: "/etc/kea(/.*)?"
+      setype: "etc_t"
+    - path: "/var/log/kea(/.*)?"
+      setype: "var_log_t"
+    - path: "/var/lib/kea(/.*)?"
+      setype: "var_lib_t"
+  notify: Restorecon kea
+
+- name: Apply SELinux contexts
+  ansible.builtin.command: restorecon -R {{ item }}
+  loop:
+    - /etc/kea
+    - /var/log/kea
+    - /var/lib/kea
+  changed_when: false
+
+- name: Add DHCP audit rules
+  ansible.builtin.blockinfile:
+    path: /etc/audit/rules.d/dhcp.rules
+    create: true
+    mode: '0640'
+    block: |
+      -w /etc/kea/ -p wa -k dhcp_config
+      -w /var/log/kea/ -p wa -k dhcp_logs
+      -w /var/lib/kea/ -p wa -k dhcp_leases
+  notify: Restart auditd
+
+- name: Configure firewall for DHCP with rate limiting
+  ansible.posix.firewalld:
+    rich_rule: 'rule service name="dhcp" accept limit value="100/m"'
+    state: enabled
+    permanent: true
+    immediate: true
+
+- name: Create systemd override for kea-dhcp4 security
+  ansible.builtin.file:
+    path: /etc/systemd/system/kea-dhcp4.service.d
+    state: directory
+    mode: '0755'
+
+- name: Configure kea-dhcp4 systemd security
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/kea-dhcp4.service.d/security.conf
+    mode: '0644'
+    content: |
+      [Service]
+      NoNewPrivileges=true
+      ProtectSystem=strict
+      ProtectHome=true
+      ProtectKernelTunables=true
+      ProtectKernelModules=true
+      ProtectControlGroups=true
+      ReadWritePaths=/var/log/kea /var/lib/kea
+      PrivateDevices=true
+      MemoryDenyWriteExecute=true
+  notify:
+    - Systemctl daemon-reload
+    - Restart kea-dhcp4
+
 - name: Enable and start kea-dhcp4
   ansible.builtin.systemd:
     name: kea-dhcp4

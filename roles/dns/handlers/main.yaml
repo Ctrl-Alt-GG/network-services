@@ -8,4 +8,17 @@
   ansible.builtin.service:
     name: unbound
     state: reloaded
+
+- name: Restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+
+- name: Systemctl daemon-reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restorecon unbound
+  ansible.builtin.command: restorecon -R /etc/unbound /var/lib/unbound
+  changed_when: false
 ...

@@ -37,6 +37,64 @@
     mode: "0644"
   notify: Restart chronyd
 
+# NTP Security configuration
+- name: Configure chrony security settings
+  ansible.builtin.blockinfile:
+    path: /etc/chrony.conf
+    insertafter: EOF
+    marker: "# {mark} ANSIBLE MANAGED SECURITY BLOCK"
+    block: |
+      # Security settings
+      bindcmdaddress 127.0.0.1
+      cmdallow 127.0.0.1
+      noclientlog
+      maxupdateskew 100
+      maxslewrate 1000
+  notify: Restart chronyd
+
+- name: Add NTP audit rules
+  ansible.builtin.blockinfile:
+    path: /etc/audit/rules.d/ntp.rules
+    create: true
+    mode: '0640'
+    block: |
+      # NTP configuration monitoring
+      -w /etc/chrony.conf -p wa -k ntp_config
+      -w /var/lib/chrony/ -p wa -k ntp_data
+  notify: Restart auditd
+
+- name: Configure NTP firewall with rate limiting
+  ansible.posix.firewalld:
+    rich_rule: 'rule service name="ntp" accept limit value="10/s"'
+    state: enabled
+    permanent: true
+    immediate: true
+
+- name: Create systemd override directory for chronyd
+  ansible.builtin.file:
+    path: /etc/systemd/system/chronyd.service.d
+    state: directory
+    mode: '0755'
+
+- name: Configure chronyd systemd security
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/chronyd.service.d/security.conf
+    mode: '0644'
+    content: |
+      [Service]
+      NoNewPrivileges=true
+      ProtectSystem=strict
+      ProtectHome=true
+      ProtectKernelTunables=true
+      ProtectKernelModules=true
+      ProtectControlGroups=true
+      ReadWritePaths=/var/lib/chrony /var/log/chrony
+      PrivateDevices=true
+      RestrictRealtime=false
+  notify:
+    - Systemctl daemon-reload
+    - Restart chronyd
+
 - name: Enable and start chronyd
   ansible.builtin.systemd:
     name: chronyd

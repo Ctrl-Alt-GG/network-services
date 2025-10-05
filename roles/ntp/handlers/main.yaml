@@ -3,4 +3,13 @@
   ansible.builtin.systemd:
     name: chronyd
     state: restarted
+
+- name: Restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+
+- name: Systemctl daemon-reload
+  ansible.builtin.systemd:
+    daemon_reload: true
 ...
