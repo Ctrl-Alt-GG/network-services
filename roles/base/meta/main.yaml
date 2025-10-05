@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  author: Ctrl-Alt-GG
+  description: Network services role for [service_name]
+  company: Ctrl-Alt-GG
+  license: "All Rights Reserved"
+  min_ansible_version: "2.12"
+  platforms:
+    - name: EL
+      versions:
+        - 9
+        - 10
+  galaxy_tags:
+    - networking
+
+dependencies:
+  - ansible.posix
+  - community.general
+
+collections:
+  - ansible.posix
+  - community.general
+...

@@ -59,6 +59,7 @@
   retries: 3
   delay: 10
   when: lancache.enabled | default(false)
+  become: true
   become_user: unbound
 
 - name: Find cache domain files
@@ -71,6 +72,7 @@
 
 - name: Read and process cache domain files
   ansible.builtin.shell: |
+    set -o pipefail
     awk '!/^(#|$)/ {print tolower($0)}' {{ item.path }} | sed 's/[[:space:]]\+$//'
   register: domain_contents
   loop: "{{ cache_domain_files.files }}"
