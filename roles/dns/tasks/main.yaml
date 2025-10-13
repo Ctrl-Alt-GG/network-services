@@ -4,18 +4,11 @@
     name: unbound
     state: present
 
-- name: Allow DNS in default zone
-  ansible.posix.firewalld:
-    service: dns
-    state: enabled
-    permanent: true
-    immediate: true
-
 - name: Ensure config directories exist
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: root
+    owner: unbound
     group: unbound
     mode: "0750"
   loop:
@@ -31,9 +24,17 @@
     creates: /var/lib/unbound/root.key
   notify: Restart unbound
 
+- name: Ensure correct ownership and permissions of the trust anchor
+  ansible.builtin.file:
+    path: /var/lib/unbound/root.key
+    owner: unbound
+    group: unbound
+    mode: '0640'
+    state: file
+
 - name: Deploy unbound.conf
   ansible.builtin.template:
-    src: templates/unbound.conf.j2
+    src: unbound.conf.j2
     dest: /etc/unbound/unbound.conf
     owner: root
     group: root
@@ -96,22 +97,30 @@
   notify: Reload unbound
   when: lancache.enabled | default(false)
 
-- name: Install unbound SELinux policy
-  ansible.builtin.package:
-    name: unbound-selinux
+- name: Install required SELinux packages
+  dnf:
+    name:
+      - selinux-policy-targeted
+      - policycoreutils-python-utils
     state: present
-  when: ansible_selinux.status == "enabled"
 
-- name: Set SELinux contexts for unbound
+- name: Check available SELinux types for DNS
+  shell: seinfo -t | grep -E "(dns|named|unbound)" || echo "No specific DNS types found"
+  register: dns_types
+  changed_when: false
+
+- name: Set SELinux contexts for unbound (using generic types)
   community.general.sefcontext:
     target: "{{ item.path }}"
     setype: "{{ item.setype }}"
     state: present
   loop:
     - path: "/etc/unbound(/.*)?"
-      setype: "named_conf_t"
+      setype: "etc_t"
     - path: "/var/lib/unbound(/.*)?"
-      setype: "named_var_lib_t"
+      setype: "var_lib_t"
+    - path: "/run/unbound.pid"
+      setype: "var_run_t"
   notify: Restorecon unbound
 
 - name: Configure DNS rate limiting in firewall
@@ -131,31 +140,6 @@
       -w /var/lib/unbound/ -p wa -k dns_data
       -a always,exit -F arch=b64 -S connect -F a2=16 -F success=1 -k dns_queries
   notify: Restart auditd
-
-- name: Create systemd override directory for unbound
-  ansible.builtin.file:
-    path: /etc/systemd/system/unbound.service.d
-    state: directory
-    mode: '0755'
-
-- name: Configure unbound systemd security
-  ansible.builtin.copy:
-    dest: /etc/systemd/system/unbound.service.d/security.conf
-    mode: '0644'
-    content: |
-      [Service]
-      NoNewPrivileges=true
-      ProtectSystem=strict
-      ProtectHome=true
-      ProtectKernelTunables=true
-      ProtectKernelModules=true
-      ProtectControlGroups=true
-      ReadWritePaths=/var/lib/unbound
-      PrivateDevices=true
-      RestrictRealtime=true
-  notify:
-    - Systemctl daemon-reload
-    - Restart unbound
 
 - name: Enable and start Unbound
   ansible.builtin.systemd:

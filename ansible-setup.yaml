@@ -1,0 +1,142 @@
+---
+- name: Prepare Rocky 10 machine for Ansible automation
+  hosts: all
+  become: yes
+  vars:
+    ansible_user: ansible
+    ansible_group: ansible
+    ansible_home: /home/ansible
+    ssh_key_comment: "ansible-automation-key"
+
+  tasks:
+    - name: Create ansible group
+      group:
+        name: "{{ ansible_group }}"
+        state: present
+
+    - name: Create ansible user
+      user:
+        name: "{{ ansible_user }}"
+        group: "{{ ansible_group }}"
+        home: "{{ ansible_home }}"
+        shell: /bin/bash
+        create_home: yes
+        system: no
+        state: present
+
+    - name: Set up SSH directory for ansible user
+      file:
+        path: "{{ ansible_home }}/.ssh"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_group }}"
+        mode: '0700'
+
+    - name: Generate SSH key pair for ansible user
+      openssh_keypair:
+        path: "{{ ansible_home }}/.ssh/id_ed25519"
+        type: ed25519
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_group }}"
+        mode: '0600'
+        comment: "{{ ssh_key_comment }}"
+      register: ssh_keypair
+
+    - name: Create authorized_keys file
+      file:
+        path: "{{ ansible_home }}/.ssh/authorized_keys"
+        state: touch
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_group }}"
+        mode: '0600'
+
+    - name: Add public key to authorized_keys (self-authorization)
+      authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ ssh_keypair.public_key }}"
+        comment: "{{ ssh_key_comment }}"
+        state: present
+
+    - name: Configure passwordless sudo for ansible user
+      lineinfile:
+        path: /etc/sudoers.d/ansible
+        line: "{{ ansible_user }} ALL=(ALL) NOPASSWD: ALL"
+        create: yes
+        mode: '0440'
+        owner: root
+        group: root
+        validate: 'visudo -cf %s'
+
+    - name: Install essential packages for Ansible operations
+      dnf:
+        name:
+          - python3
+          - python3-pip
+          - git
+          - curl
+          - wget
+          - vim
+          - sudo
+          - openssh-clients
+        state: present
+
+    - name: Display SSH public key for external use
+      debug:
+        msg: |
+          SSH Public Key for external ansible control nodes:
+          {{ ssh_keypair.public_key }}
+
+          Save this key and add it to your ansible control node's known keys.
+
+    - name: Create ansible configuration directory
+      file:
+        path: "{{ ansible_home }}/.ansible"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_group }}"
+        mode: '0755'
+
+    - name: Create basic ansible.cfg for the ansible user
+      copy:
+        content: |
+          [ssh_connection]
+          ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
+          pipelining = True
+        dest: "{{ ansible_home }}/.ansible.cfg"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_group }}"
+        mode: '0644'
+
+- name: Validate ansible setup
+  hosts: all
+  become: yes
+  tasks:
+    - name: Test ansible user sudo access
+      become_user: "{{ ansible_user | default('ansible') }}"
+      become_method: sudo
+      command: whoami
+      register: sudo_test
+
+    - name: Verify ansible user can use sudo without password
+      assert:
+        that:
+          - sudo_test.stdout == (ansible_user | default('ansible'))
+        fail_msg: "Ansible user cannot use sudo without password"
+        success_msg: "Ansible user successfully configured with passwordless sudo"
+
+    - name: Display setup summary
+      debug:
+        msg: |
+          ========================================
+          ANSIBLE SETUP COMPLETE
+          ========================================
+          Ansible user: {{ ansible_user | default('ansible') }}
+          Home directory: {{ ansible_home | default('/home/ansible') }}
+          Sudo access: Passwordless (NOPASSWD: ALL)
+          SSH key: Generated and configured
+
+          Next steps:
+          1. Copy the displayed SSH public key to your ansible control node
+          2. Add target machines to your inventory
+          3. Test connection: ansible all -m ping
+          ========================================

@@ -1,0 +1,11 @@
+# {{ansible_managed}}
+[DEFAULT]
+backend = systemd
+banaction = firewallcmd-ipset
+banaction_allports = firewallcmd-rich-rules[actiontype=allports]
+findtime = 10m
+maxretry = 5
+bantime = 1h
+bantime.increment = true
+bantime.factor = 24
+bantime.maxtime = 5w

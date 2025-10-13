@@ -1,8 +1,12 @@
 # {{ansible_managed}}
 server:
-  # Listen only on localhost (tightens exposure)
   interface: 0.0.0.0
   interface: ::0
+
+  module-config: "validator iterator"
+
+  chroot: ""
+  pidfile: "/var/run/unbound/unbound.pid"
 
   # Tuning for performance
   num-threads: 4
@@ -17,10 +21,7 @@ server:
   num-queries-per-thread: 4096
   prefetch: yes
   prefetch-key: yes
-
-  # Allow only local queries
-  access-control: 127.0.0.0/8 allow
-  access-control: ::1 allow
+  rrset-roundrobin: yes
 
   # Privacy and hardening
   qname-minimisation: yes
@@ -28,12 +29,23 @@ server:
   harden-dnssec-stripped: yes
   harden-below-nxdomain: yes
   harden-algo-downgrade: yes
+  harden-short-bufsize: yes
+  harden-large-queries: yes
+  harden-referral-path: yes
   aggressive-nsec: yes
   hide-identity: yes
   hide-version: yes
+  hide-trustanchor: yes
+  hide-http-user-agent: yes
+  hide-http-user-agent: yes
   minimal-responses: yes
   deny-any: yes
+  trust-anchor-signaling: yes
+  root-key-sentinel: yes
+  val-clean-additional: yes
+  val-permissive-mode: no
 
+  # Access control
   access-control: 192.168.0.0/16 allow
   access-control: 0.0.0.0/0 refuse
 

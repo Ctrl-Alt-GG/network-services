@@ -3,10 +3,24 @@ ntp_upstreams:
   - type: "server"
     host: "time.cloudflare.com"
     nts: true
-  - type: "pool"
-    host: "pool.ntp.org"
+  - type: "server"
+    host: "time.google.com"
     nts: false
-
+  - type: "server"
+    host: "ubul.kfki.hu"
+    nts: false
+  - type: "server"
+    host: "ntp.ripe.net"
+    nts: false
+  - type: "server"
+    host: "time.windows.com"
+    nts: false
+  - type: "server"
+    host: "time.apple.com"
+    nts: false
+  - type: "server"
+    host: "time.aws.com"
+    nts: false
 ntp_allow:
-  - "192.168.1.0/24"
+  - "192.168.0.0/16"
 ...

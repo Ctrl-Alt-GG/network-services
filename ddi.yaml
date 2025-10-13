@@ -1,0 +1,8 @@
+---
+- name: "Deploy network services"
+  hosts: all
+  roles:
+    - base
+    - dns
+    - ntp
+...

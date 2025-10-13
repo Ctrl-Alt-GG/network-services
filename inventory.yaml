@@ -1,0 +1,13 @@
+---
+all:
+  children:
+    dhcp:
+      hosts:
+        ddi-01:
+    dns:
+      hosts:
+        ddi-01:
+    ntp:
+      hosts:
+        ddi-01:
+...

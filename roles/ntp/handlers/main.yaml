@@ -8,8 +8,4 @@
   ansible.builtin.service:
     name: auditd
     state: restarted
-
-- name: Systemctl daemon-reload
-  ansible.builtin.systemd:
-    daemon_reload: true
 ...

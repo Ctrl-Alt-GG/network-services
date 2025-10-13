@@ -1,6 +1,6 @@
 ---
 interfaces:
-  - enp1s0
+  - eno1
 subnets:
   - 192.168.128.0/24
 dns_servers:

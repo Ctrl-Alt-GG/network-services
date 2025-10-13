@@ -14,11 +14,10 @@
     name: auditd
     state: restarted
 
-- name: Systemctl daemon-reload
-  ansible.builtin.systemd:
-    daemon_reload: true
-
 - name: Restorecon unbound
-  ansible.builtin.command: restorecon -R /etc/unbound /var/lib/unbound
+  ansible.builtin.command: |
+    restorecon -Rv /etc/unbound/
+    restorecon -Rv /var/lib/unbound/
+    restorecon -v /run/unbound.pid
   changed_when: false
 ...

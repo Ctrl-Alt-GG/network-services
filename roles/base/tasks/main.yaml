@@ -33,32 +33,10 @@
       line: 'PermitRootLogin no'
   notify: Restart sshd
 
-- name: Setup timesync config
-  template:
-    src: timesyncd.conf.template
-    dest: /etc/systemd/timesyncd.conf
-    mode: '0644'
-  notify: Run timedatectl
-  when: ansible_service_mgr == "systemd"
-
 - name: Set Timezone
   community.general.timezone:
-    name: "{{ base_timedatectl_timezone }}"
+    name: "{{ timezone }}"
   when: ansible_service_mgr == "systemd"
-
-- name: Restart timesyncd to apply changes
-  when: ansible_service_mgr == "systemd"
-  ansible.builtin.systemd:
-    state: restarted
-    daemon_reload: yes
-    name: systemd-timesyncd
-
-- name: Verify timesyncd is running
-  when: ansible_service_mgr == "systemd"
-  ansible.builtin.systemd:
-    name: systemd-timesyncd
-    state: started
-    enabled: true
 
 - name: Ensure firewalld is installed
   ansible.builtin.package:
@@ -170,4 +148,26 @@
     name: fail2ban
     state: started
     enabled: true
+
+- name: Ensure EPEL repository is enabled
+  ansible.builtin.package:
+    name: epel-release
+    state: present
+
+- name: Ensure debugging tools are installed
+  ansible.builtin.package:
+    name:
+      - tcpdump
+      - htop
+      - iftop
+      - nmap
+      - nano
+      - net-tools
+      - bind-utils
+      - traceroute
+      - mtr
+      - tmux
+      - htop
+      - iperf3
+    state: present
 ...

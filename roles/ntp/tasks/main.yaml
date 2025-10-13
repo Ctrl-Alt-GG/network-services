@@ -4,13 +4,6 @@
     name: chrony
     state: present
 
-- name: Allow NTP in default zone
-  ansible.posix.firewalld:
-    service: ntp
-    state: enabled
-    permanent: true
-    immediate: true
-
 - name: Ensure chrony directories exist
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -23,10 +16,6 @@
       mode: "0755"
     - path: "/var/log/chrony"
       mode: "0755"
-    - path: "/run/chrony"
-      mode: "0755"
-      owner: "chrony"
-      group: "chrony"
 
 - name: Deploy chrony.conf
   ansible.builtin.template:
@@ -35,21 +24,6 @@
     owner: root
     group: root
     mode: "0644"
-  notify: Restart chronyd
-
-# NTP Security configuration
-- name: Configure chrony security settings
-  ansible.builtin.blockinfile:
-    path: /etc/chrony.conf
-    insertafter: EOF
-    marker: "# {mark} ANSIBLE MANAGED SECURITY BLOCK"
-    block: |
-      # Security settings
-      bindcmdaddress 127.0.0.1
-      cmdallow 127.0.0.1
-      noclientlog
-      maxupdateskew 100
-      maxslewrate 1000
   notify: Restart chronyd
 
 - name: Add NTP audit rules
@@ -69,31 +43,6 @@
     state: enabled
     permanent: true
     immediate: true
-
-- name: Create systemd override directory for chronyd
-  ansible.builtin.file:
-    path: /etc/systemd/system/chronyd.service.d
-    state: directory
-    mode: '0755'
-
-- name: Configure chronyd systemd security
-  ansible.builtin.copy:
-    dest: /etc/systemd/system/chronyd.service.d/security.conf
-    mode: '0644'
-    content: |
-      [Service]
-      NoNewPrivileges=true
-      ProtectSystem=strict
-      ProtectHome=true
-      ProtectKernelTunables=true
-      ProtectKernelModules=true
-      ProtectControlGroups=true
-      ReadWritePaths=/var/lib/chrony /var/log/chrony
-      PrivateDevices=true
-      RestrictRealtime=false
-  notify:
-    - Systemctl daemon-reload
-    - Restart chronyd
 
 - name: Enable and start chronyd
   ansible.builtin.systemd:
