@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Ctrl-Alt-GG
-  description: Network services role
+  description: Rocky Base OS Role
   company: Ctrl-Alt-GG
   license: "All Rights Reserved"
   min_ansible_version: "2.14"

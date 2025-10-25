@@ -1,0 +1,24 @@
+---
+- name: Fail if users array is not defined or empty
+  fail:
+    msg: "ERROR: 'users' variable must be defined and contain at least one user"
+  when: users is not defined or users | length == 0
+
+- name: Create users
+  user:
+    name: "{{ item.name }}"
+    shell: "{{ item.shell | default('/bin/bash') }}"
+    groups: "{{ item.groups | default(['wheel']) }}"
+    append: yes
+    create_home: yes
+    state: present
+  loop: "{{ users }}"
+
+- name: Add SSH public keys
+  authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ item.ssh_key_url }}"
+    state: present
+  loop: "{{ users }}"
+  when: item.ssh_key_url is defined
+...
