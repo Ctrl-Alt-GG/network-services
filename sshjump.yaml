@@ -1,0 +1,7 @@
+---
+- name: "Deploy SSH jump server"
+  hosts: sshjump
+  roles:
+    - base
+    - users
+...

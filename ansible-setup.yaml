@@ -23,7 +23,6 @@
     ansible_user: "{{ username }}"
     ansible_password: "{{ password }}"
     ansible_become_pass: "{{ password }}"
-    ansible_user: "{{ ansible_username }}"
     ansible_group: "{{ ansible_username }}"
     ansible_home: /home/ansible
     ssh_key_comment: "ansible-automation-key"

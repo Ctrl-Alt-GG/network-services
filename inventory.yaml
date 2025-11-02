@@ -1,13 +1,19 @@
 ---
 all:
   children:
+    other:
+      hosts:
+        sshjump:
     dhcp:
       hosts:
         ddi-01:
+        ddi-02:
     dns:
       hosts:
         ddi-01:
+        ddi-02:
     ntp:
       hosts:
         ddi-01:
+        ddi-02:
 ...
