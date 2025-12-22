@@ -104,20 +104,6 @@
       - policycoreutils-python-utils
     state: present
 
-- name: Set SELinux contexts for unbound (using generic types)
-  community.general.sefcontext:
-    target: "{{ item.path }}"
-    setype: "{{ item.setype }}"
-    state: present
-  loop:
-    - path: "/etc/unbound(/.*)?"
-      setype: "etc_t"
-    - path: "/var/lib/unbound(/.*)?"
-      setype: "var_lib_t"
-    - path: "/run/unbound.pid"
-      setype: "var_run_t"
-  notify: Restorecon unbound
-
 - name: Configure DNS rate limiting in firewall
   ansible.posix.firewalld:
     rich_rule: 'rule service name="dns" accept limit value="1000/s"'
