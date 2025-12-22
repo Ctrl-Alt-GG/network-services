@@ -104,11 +104,6 @@
       - policycoreutils-python-utils
     state: present
 
-- name: Check available SELinux types for DNS
-  shell: seinfo -t | grep -E "(dns|named|unbound)" || echo "No specific DNS types found"
-  register: dns_types
-  changed_when: false
-
 - name: Set SELinux contexts for unbound (using generic types)
   community.general.sefcontext:
     target: "{{ item.path }}"
