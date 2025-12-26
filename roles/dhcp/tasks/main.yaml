@@ -34,7 +34,6 @@
     owner: root
     group: kea
     mode: '0640'
-    validate: 'kea-dhcp4 -t %s'
     backup: true
   notify: Restart kea-dhcp4
 
@@ -47,35 +46,6 @@
     mode: '0640'
     backup: true
   notify: Restart kea-ctrl-agent
-
-- name: Verify kea-dhcp4 configuration
-  ansible.builtin.command: kea-dhcp4 -t /etc/kea/kea-dhcp4.conf
-  register: kea_config_test
-  failed_when: kea_config_test.rc != 0
-  changed_when: false
-
-# SELinux context for Kea
-- name: Set SELinux contexts for Kea directories
-  community.general.sefcontext:
-    target: "{{ item.path }}"
-    setype: "{{ item.setype }}"
-    state: present
-  loop:
-    - path: "/etc/kea(/.*)?"
-      setype: "etc_t"
-    - path: "/var/log/kea(/.*)?"
-      setype: "var_log_t"
-    - path: "/var/lib/kea(/.*)?"
-      setype: "var_lib_t"
-  notify: Restorecon kea
-
-- name: Apply SELinux contexts
-  ansible.builtin.command: restorecon -R {{ item }}
-  loop:
-    - /etc/kea
-    - /var/log/kea
-    - /var/lib/kea
-  changed_when: false
 
 - name: Add DHCP audit rules
   ansible.builtin.blockinfile:

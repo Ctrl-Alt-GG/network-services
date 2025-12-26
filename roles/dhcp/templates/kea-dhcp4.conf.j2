@@ -5,7 +5,8 @@
       "interfaces": [
 {% for ifname in interfaces %}
         "{{ ifname }}"{% if not loop.last %},{% endif %}
-{% endfor %}
+{% endfor %},
+      "dhcp-socket-type": "udp"
       ]
     },
 
@@ -41,6 +42,7 @@
       {
         "id": {{ loop.index }},
         "subnet": "{{ s }}",
+        "relay": { "ip-addresses": [ "{{ router }}" ] },
         "pools": [
           { "pool": "{{ pool_start }} - {{ pool_end }}" }
         ],

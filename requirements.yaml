@@ -6,4 +6,5 @@ collections:
     version: ">=1.0.0"
   - name: community.docker
     version: ">=3.4.11"
+  - name: ansible.utils
 ...
