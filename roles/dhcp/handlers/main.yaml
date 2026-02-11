@@ -21,4 +21,5 @@
 - name: Restorecon kea
   ansible.builtin.command: restorecon -R /etc/kea /var/log/kea /var/lib/kea
   changed_when: false
+  when: ansible_selinux.status == 'enabled'
 ...

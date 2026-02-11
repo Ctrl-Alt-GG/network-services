@@ -12,4 +12,5 @@
 - name: Restorecon lancache
   ansible.builtin.command: restorecon -Rv /srv/lancache
   changed_when: false
+  when: ansible_selinux.status == 'enabled'
 ...

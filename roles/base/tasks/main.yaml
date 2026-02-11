@@ -65,6 +65,7 @@
     policy: targeted
     state: enforcing
   register: selinux_status
+  when: ansible_selinux.status == 'enabled'
 
 - name: Install SELinux tools
   ansible.builtin.package:
@@ -73,6 +74,7 @@
       - selinux-policy-devel
       - setroubleshoot-server
     state: present
+  when: ansible_selinux.status == 'enabled'
 
 # ── Audit ──────────────────────────────────────────────────────
 - name: Install auditd

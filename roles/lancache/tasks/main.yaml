@@ -78,6 +78,7 @@
       - policycoreutils-python-utils
       - selinux-policy-devel
     state: present
+  when: ansible_selinux.status == 'enabled'
 
 - name: Set SELinux file contexts for LANcache data
   community.general.sefcontext:
@@ -90,6 +91,7 @@
     - target: "/opt/lancache(/.*)?"
       setype: container_file_t
   notify: Restorecon lancache
+  when: ansible_selinux.status == 'enabled'
 
 # ── Audit Rules ───────────────────────────────────────────────
 - name: Add LANcache audit rules

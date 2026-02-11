@@ -314,6 +314,7 @@
       - policycoreutils-python-utils
       - selinux-policy-devel
     state: present
+  when: ansible_selinux.status == 'enabled'
 
 - name: Set SELinux booleans for LibreNMS
   ansible.posix.seboolean:
@@ -326,6 +327,7 @@
     - httpd_setrlimit
     - httpd_unified
     - httpd_execmem
+  when: ansible_selinux.status == 'enabled'
 
 - name: Set SELinux file contexts for LibreNMS
   community.general.sefcontext:
@@ -340,6 +342,7 @@
     - target: "{{ librenms_install_dir }}/rrd(/.*)?"
       setype: httpd_sys_rw_content_t
   notify: Restorecon librenms
+  when: ansible_selinux.status == 'enabled'
 
 # ── Security (project conventions) ────────────────────────────
 - name: Allow HTTP through firewall

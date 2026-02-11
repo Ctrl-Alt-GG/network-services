@@ -137,6 +137,7 @@
       - selinux-policy-targeted
       - policycoreutils-python-utils
     state: present
+  when: ansible_selinux.status == 'enabled'
 
 # ── Firewall ──────────────────────────────────────────────────
 - name: Allow DNS through firewall

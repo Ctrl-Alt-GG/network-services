@@ -20,4 +20,5 @@
     restorecon -Rv /var/lib/unbound/
     restorecon -v /run/unbound.pid
   changed_when: false
+  when: ansible_selinux.status == 'enabled'
 ...

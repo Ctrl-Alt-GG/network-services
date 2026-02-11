@@ -31,4 +31,5 @@
 - name: Restorecon librenms
   ansible.builtin.command: "restorecon -Rv {{ librenms_install_dir }}"
   changed_when: false
+  when: ansible_selinux.status == 'enabled'
 ...

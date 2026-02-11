@@ -36,7 +36,7 @@ Follow the existing layering strictly — don't flatten or duplicate variables a
 - **Config validation**: Templates that support it use `validate:` parameter (e.g., `unbound-checkconf %s`, `visudo -cf %s`, `sshd -t -f %s`).
 - **Firewall pattern**: Each service role enables its own firewalld service (`ansible.posix.firewalld` with `service:`, `permanent: true`, `immediate: true`). No rich rules or rate limiting.
 - **Security hardening**: Every role adds auditd rules via `blockinfile` to `/etc/audit/rules.d/<service>.rules` and notifies `Restart auditd`. Service roles apply systemd sandboxing where possible (see DHCP's `security.conf` override).
-- **SELinux**: Enforcing mode assumed. Roles install SELinux tooling and use `restorecon` handlers after file operations.
+- **SELinux**: Enforcing mode assumed on bare-metal/VM hosts. All SELinux tasks and `restorecon` handlers are guarded with `when: ansible_selinux.status == 'enabled'` so playbooks run safely on LXC containers (or any host without SELinux).
 
 ## Key Implementation Details
 
