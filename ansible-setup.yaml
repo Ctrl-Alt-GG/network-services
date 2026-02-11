@@ -23,21 +23,22 @@
     ansible_user: "{{ username }}"
     ansible_password: "{{ password }}"
     ansible_become_pass: "{{ password }}"
-    ansible_group: "{{ ansible_username }}"
-    ansible_home: /home/ansible
+    automation_user: "{{ ansible_username }}"
+    automation_group: "{{ ansible_username }}"
+    automation_home: "/home/{{ ansible_username }}"
     ssh_key_comment: "ansible-automation-key"
 
   tasks:
     - name: Create ansible group
       ansible.builtin.group:
-        name: "{{ ansible_group }}"
+        name: "{{ automation_group }}"
         state: present
 
     - name: Create ansible user
       ansible.builtin.user:
-        name: "{{ ansible_user }}"
-        group: "{{ ansible_group }}"
-        home: "{{ ansible_home }}"
+        name: "{{ automation_user }}"
+        group: "{{ automation_group }}"
+        home: "{{ automation_home }}"
         shell: /bin/bash
         create_home: yes
         system: no
@@ -45,33 +46,33 @@
 
     - name: Set up SSH directory for ansible user
       ansible.builtin.file:
-        path: "{{ ansible_home }}/.ssh"
+        path: "{{ automation_home }}/.ssh"
         state: directory
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_group }}"
+        owner: "{{ automation_user }}"
+        group: "{{ automation_group }}"
         mode: '0700'
 
     - name: Generate SSH key pair for ansible user
       community.crypto.openssh_keypair:
-        path: "{{ ansible_home }}/.ssh/id_ed25519"
+        path: "{{ automation_home }}/.ssh/id_ed25519"
         type: ed25519
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_group }}"
+        owner: "{{ automation_user }}"
+        group: "{{ automation_group }}"
         mode: '0600'
         comment: "{{ ssh_key_comment }}"
       register: ssh_keypair
 
     - name: Create authorized_keys file
       ansible.builtin.file:
-        path: "{{ ansible_home }}/.ssh/authorized_keys"
+        path: "{{ automation_home }}/.ssh/authorized_keys"
         state: touch
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_group }}"
+        owner: "{{ automation_user }}"
+        group: "{{ automation_group }}"
         mode: '0600'
 
     - name: Add public key to authorized_keys (self-authorization)
       ansible.posix.authorized_key:
-        user: "{{ ansible_user }}"
+        user: "{{ automation_user }}"
         key: "{{ ssh_keypair.public_key }}"
         comment: "{{ ssh_key_comment }}"
         state: present
@@ -79,7 +80,7 @@
     - name: Configure passwordless sudo for ansible user
       ansible.builtin.lineinfile:
         path: /etc/sudoers.d/ansible
-        line: "{{ ansible_user }} ALL=(ALL) NOPASSWD: ALL"
+        line: "{{ automation_user }} ALL=(ALL) NOPASSWD: ALL"
         create: yes
         mode: '0440'
         owner: root
@@ -87,5 +88,5 @@
         validate: 'visudo -cf %s'
 
     - name: Disable password login only for ansible user
-      ansible.builtin.command: "passwd -l {{ ansible_username }}"
+      ansible.builtin.command: "passwd -l {{ automation_user }}"
 ...
