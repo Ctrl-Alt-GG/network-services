@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Ctrl-Alt-GG
-  description: User creator role
+  description: LibreNMS Network Monitoring Role
   company: Ctrl-Alt-GG
   license: "All Rights Reserved"
   min_ansible_version: "2.14"
@@ -10,7 +10,12 @@ galaxy_info:
       versions:
         - all
   galaxy_tags:
-    - networking
+    - monitoring
 
 dependencies: []
+
+collections:
+  - ansible.posix
+  - community.general
+  - community.mysql
 ...

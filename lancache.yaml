@@ -1,0 +1,8 @@
+---
+- name: "Deploy LANcache content caching"
+  hosts: lancache
+  roles:
+    - base
+    - users
+    - lancache
+...

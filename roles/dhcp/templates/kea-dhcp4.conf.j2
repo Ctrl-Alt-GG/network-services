@@ -5,9 +5,9 @@
       "interfaces": [
 {% for ifname in interfaces %}
         "{{ ifname }}"{% if not loop.last %},{% endif %}
-{% endfor %},
+{% endfor %}
+      ],
       "dhcp-socket-type": "udp"
-      ]
     },
 
     "control-socket": {

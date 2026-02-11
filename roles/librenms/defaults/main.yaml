@@ -1,0 +1,11 @@
+---
+librenms_user: librenms
+librenms_group: librenms
+librenms_install_dir: /opt/librenms
+librenms_repo: "https://github.com/librenms/librenms.git"
+librenms_branch: master
+librenms_php_version: "8.2"
+librenms_db_host: localhost
+librenms_db_name: librenms
+librenms_db_user: librenms
+...

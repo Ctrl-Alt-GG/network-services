@@ -1,9 +1,11 @@
 ---
+# ── Package Installation ──────────────────────────────────────
 - name: Install Unbound
   ansible.builtin.package:
     name: unbound
     state: present
 
+# ── Configuration ─────────────────────────────────────────────
 - name: Ensure config directories exist
   ansible.builtin.file:
     path: "{{ item }}"
@@ -14,6 +16,7 @@
   loop:
     - /etc/unbound
     - /etc/unbound/conf.d
+    - /etc/unbound/zones.d
     - /etc/unbound/lancache.d
     - /var/lib/unbound
 
@@ -42,6 +45,36 @@
     validate: 'unbound-checkconf %s'
   notify: Restart unbound
 
+# ── Private Zones ─────────────────────────────────────────────
+- name: Deploy private zone configurations
+  ansible.builtin.template:
+    src: unbound-zone.conf.j2
+    dest: "/etc/unbound/zones.d/{{ zone.name }}.conf"
+    owner: root
+    group: unbound
+    mode: '0640'
+    validate: 'unbound-checkconf %s'
+  loop: "{{ private_zones | default([]) }}"
+  loop_control:
+    loop_var: zone
+  notify: Restart unbound
+  when: private_zones | default([]) | length > 0
+
+- name: List deployed zone files
+  ansible.builtin.find:
+    paths: /etc/unbound/zones.d
+    patterns: '*.conf'
+  register: deployed_zone_files
+
+- name: Remove stale zone files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ deployed_zone_files.files }}"
+  when: (item.path | basename | regex_replace('\\.conf$', '')) not in (private_zones | default([]) | map(attribute='name') | list)
+  notify: Restart unbound
+
+# ── LANcache Integration ──────────────────────────────────────
 - name: Install Git
   ansible.builtin.dnf:
     name: git
@@ -93,24 +126,27 @@
     group: unbound
     mode: "0640"
   vars:
-    lancache_domains: "{{ cache_domains_list.stdout_lines }}"
+    lancache_domains: "{{ cache_domains_list }}"
   notify: Reload unbound
   when: lancache.enabled | default(false)
 
+# ── SELinux ───────────────────────────────────────────────────
 - name: Install required SELinux packages
-  dnf:
+  ansible.builtin.dnf:
     name:
       - selinux-policy-targeted
       - policycoreutils-python-utils
     state: present
 
-- name: Configure DNS rate limiting in firewall
+# ── Firewall ──────────────────────────────────────────────────
+- name: Allow DNS through firewall
   ansible.posix.firewalld:
-    rich_rule: 'rule service name="dns" accept limit value="1000/s"'
+    service: dns
     state: enabled
     permanent: true
     immediate: true
 
+# ── Audit Rules ───────────────────────────────────────────────
 - name: Add DNS audit rules
   ansible.builtin.blockinfile:
     path: /etc/audit/rules.d/dns.rules
@@ -122,6 +158,7 @@
       -a always,exit -F arch=b64 -S connect -F a2=16 -F success=1 -k dns_queries
   notify: Restart auditd
 
+# ── Enable Services ───────────────────────────────────────────
 - name: Enable and start Unbound
   ansible.builtin.systemd:
     name: unbound

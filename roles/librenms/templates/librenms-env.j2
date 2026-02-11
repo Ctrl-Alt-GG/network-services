@@ -1,0 +1,9 @@
+# {{ansible_managed}}
+APP_KEY={{ _app_key }}
+APP_URL=http://{{ librenms_domain }}
+APP_TIMEZONE={{ timezone | default('UTC') }}
+
+DB_HOST={{ librenms_db_host }}
+DB_DATABASE={{ librenms_db_name }}
+DB_USERNAME={{ librenms_db_user }}
+DB_PASSWORD={{ librenms_db_password }}

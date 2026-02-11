@@ -1,0 +1,8 @@
+---
+- name: "Deploy LibreNMS monitoring"
+  hosts: librenms
+  roles:
+    - base
+    - users
+    - librenms
+...

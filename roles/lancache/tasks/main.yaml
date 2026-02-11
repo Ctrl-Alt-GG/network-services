@@ -1,0 +1,104 @@
+---
+# ── Docker Engine ─────────────────────────────────────────────
+- name: Install Docker prerequisites
+  ansible.builtin.dnf:
+    name:
+      - dnf-plugins-core
+    state: present
+
+- name: Add Docker CE repository
+  ansible.builtin.command:
+    cmd: dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+    creates: /etc/yum.repos.d/docker-ce.repo
+
+- name: Install Docker CE
+  ansible.builtin.dnf:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    state: present
+
+- name: Enable and start Docker
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started
+
+# ── Cache Storage ─────────────────────────────────────────────
+- name: Create LANcache directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - /opt/lancache
+    - "{{ lancache_cache_dir }}"
+    - "{{ lancache_logs_dir }}"
+
+# ── Deploy Compose Stack ──────────────────────────────────────
+- name: Deploy docker-compose.yaml
+  ansible.builtin.template:
+    src: docker-compose.yaml.j2
+    dest: /opt/lancache/docker-compose.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart lancache
+
+- name: Start LANcache containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/lancache
+    state: present
+    pull: missing
+  register: lancache_compose
+
+# ── Firewall ──────────────────────────────────────────────────
+- name: Allow HTTP through firewall
+  ansible.posix.firewalld:
+    service: http
+    state: enabled
+    permanent: true
+    immediate: true
+
+- name: Allow HTTPS through firewall
+  ansible.posix.firewalld:
+    service: https
+    state: enabled
+    permanent: true
+    immediate: true
+
+# ── SELinux ───────────────────────────────────────────────────
+- name: Install SELinux management packages
+  ansible.builtin.dnf:
+    name:
+      - policycoreutils-python-utils
+      - selinux-policy-devel
+    state: present
+
+- name: Set SELinux file contexts for LANcache data
+  community.general.sefcontext:
+    target: "{{ item.target }}"
+    setype: "{{ item.setype }}"
+    state: present
+  loop:
+    - target: "/srv/lancache(/.*)?"
+      setype: container_file_t
+    - target: "/opt/lancache(/.*)?"
+      setype: container_file_t
+  notify: Restorecon lancache
+
+# ── Audit Rules ───────────────────────────────────────────────
+- name: Add LANcache audit rules
+  ansible.builtin.blockinfile:
+    path: /etc/audit/rules.d/lancache.rules
+    create: true
+    mode: '0640'
+    block: |
+      -w /opt/lancache/ -p wa -k lancache_config
+      -w /srv/lancache/ -p wa -k lancache_data
+  notify: Restart auditd
+...

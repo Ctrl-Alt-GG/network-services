@@ -1,6 +1,6 @@
 ---
 - name: Run timedatectl
-  command: timedatectl set-ntp true
+  ansible.builtin.command: timedatectl set-ntp true
   changed_when: false
 
 - name: Restart sshd

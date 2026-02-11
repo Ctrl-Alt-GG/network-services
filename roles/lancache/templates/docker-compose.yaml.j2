@@ -1,0 +1,30 @@
+# {{ansible_managed}}
+services:
+  monolithic:
+    image: {{ lancache_monolithic_image }}
+    container_name: lancache
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - {{ lancache_cache_dir }}:/data/cache
+      - {{ lancache_logs_dir }}:/data/logs
+    environment:
+      CACHE_DISK_SIZE: "{{ lancache_cache_disk_size }}"
+      CACHE_MAX_AGE: "{{ lancache_cache_max_age }}"
+      UPSTREAM_DNS: "{{ lancache_upstream_dns }}"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  sniproxy:
+    image: {{ lancache_sniproxy_image }}
+    container_name: lancache-sniproxy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    environment:
+      UPSTREAM_DNS: "{{ lancache_upstream_dns }}"
+    depends_on:
+      - monolithic

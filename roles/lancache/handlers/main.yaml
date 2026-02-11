@@ -1,0 +1,15 @@
+---
+- name: Restart lancache
+  community.docker.docker_compose_v2:
+    project_src: /opt/lancache
+    state: restarted
+
+- name: Restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+
+- name: Restorecon lancache
+  ansible.builtin.command: restorecon -Rv /srv/lancache
+  changed_when: false
+...

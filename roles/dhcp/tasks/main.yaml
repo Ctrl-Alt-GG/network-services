@@ -1,9 +1,11 @@
 ---
+# ── Package Installation ──────────────────────────────────────
 - name: Install Kea DHCP server
   ansible.builtin.dnf:
     name: kea
     state: present
 
+# ── Firewall ──────────────────────────────────────────────────
 - name: Allow DHCP in default zone
   ansible.posix.firewalld:
     service: dhcp
@@ -11,6 +13,7 @@
     permanent: true
     immediate: true
 
+# ── Configuration ─────────────────────────────────────────────
 - name: Ensure Kea config dir
   ansible.builtin.file:
     path: /etc/kea
@@ -47,6 +50,7 @@
     backup: true
   notify: Restart kea-ctrl-agent
 
+# ── Audit Rules ───────────────────────────────────────────────
 - name: Add DHCP audit rules
   ansible.builtin.blockinfile:
     path: /etc/audit/rules.d/dhcp.rules
@@ -58,13 +62,7 @@
       -w /var/lib/kea/ -p wa -k dhcp_leases
   notify: Restart auditd
 
-- name: Configure firewall for DHCP with rate limiting
-  ansible.posix.firewalld:
-    rich_rule: 'rule service name="dhcp" accept limit value="100/m"'
-    state: enabled
-    permanent: true
-    immediate: true
-
+# ── Systemd Hardening ─────────────────────────────────────────
 - name: Create systemd override for kea-dhcp4 security
   ansible.builtin.file:
     path: /etc/systemd/system/kea-dhcp4.service.d
@@ -90,6 +88,7 @@
     - Systemctl daemon-reload
     - Restart kea-dhcp4
 
+# ── Enable Services ───────────────────────────────────────────
 - name: Enable and start kea-dhcp4
   ansible.builtin.systemd:
     name: kea-dhcp4

@@ -2,6 +2,10 @@
 server:
   interface: 0.0.0.0
   interface: ::0
+  do-ip4: yes
+  do-ip6: yes
+  do-udp: yes
+  do-tcp: yes
 
   module-config: "validator iterator"
 
@@ -22,6 +26,8 @@ server:
   prefetch: yes
   prefetch-key: yes
   rrset-roundrobin: yes
+  serve-expired: yes
+  serve-expired-ttl: 86400
 
   # Privacy and hardening
   qname-minimisation: yes
@@ -29,14 +35,10 @@ server:
   harden-dnssec-stripped: yes
   harden-below-nxdomain: yes
   harden-algo-downgrade: yes
-  harden-short-bufsize: yes
-  harden-large-queries: yes
-  harden-referral-path: yes
   aggressive-nsec: yes
   hide-identity: yes
   hide-version: yes
   hide-trustanchor: yes
-  hide-http-user-agent: yes
   hide-http-user-agent: yes
   minimal-responses: yes
   deny-any: yes
@@ -45,16 +47,41 @@ server:
   val-clean-additional: yes
   val-permissive-mode: no
 
+  # Private address ranges — refuse to return RFC1918 from public names
+  private-address: 10.0.0.0/8
+  private-address: 172.16.0.0/12
+  private-address: 192.168.0.0/16
+  private-address: 169.254.0.0/16
+  private-address: fd00::/8
+  private-address: fe80::/10
+
+  # Detect poisoning: log warning if more than threshold unsolicited replies
+  unwanted-reply-threshold: 10000
+
   # Access control
+  access-control: 127.0.0.0/8 allow
+  access-control: ::1/128 allow
   access-control: 192.168.0.0/16 allow
   access-control: 0.0.0.0/0 refuse
+  access-control: ::/0 refuse
 
-  # Enable DNSSEC trust anchor maintenance
+  # DNSSEC trust anchor
   auto-trust-anchor-file: "/var/lib/unbound/root.key"
 
   # Reasonable EDNS size to reduce fragmentation
   edns-buffer-size: 1232
   max-udp-size: 1232
+
+  # Logging (set verbosity to 2 for debugging)
+  verbosity: 1
+  log-queries: no
+  log-replies: no
+  log-servfail: yes
+  logfile: ""
+  use-syslog: yes
+
+  # Include private zone definitions
+  include: "/etc/unbound/zones.d/*.conf"
 
 {% if lancache.enabled | default(false) %}
   # Include extra LANcache overrides
@@ -74,6 +101,7 @@ remote-control:
 # Forward all queries to upstream resolvers
 forward-zone:
   name: "."
+  forward-first: yes
 {% for ip in upstreams %}
   forward-addr: {{ ip }}
 {% endfor %}

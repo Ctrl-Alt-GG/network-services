@@ -1,9 +1,22 @@
 ---
-- name: "Deploy network services"
-  hosts: all
+- name: "Apply base hardening to DDI hosts"
+  hosts: dns:dhcp:ntp
   roles:
     - base
     - users
+
+- name: "Deploy DNS"
+  hosts: dns
+  roles:
     - dns
+
+- name: "Deploy DHCP"
+  hosts: dhcp
+  roles:
+    - dhcp
+
+- name: "Deploy NTP"
+  hosts: ntp
+  roles:
     - ntp
 ...

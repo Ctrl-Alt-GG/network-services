@@ -1,4 +1,5 @@
 ---
+# ── SSH Hardening ──────────────────────────────────────────────
 - name: Ensure openssh-server is installed
   ansible.builtin.package:
     name: openssh-server
@@ -33,11 +34,13 @@
       line: 'PermitRootLogin no'
   notify: Restart sshd
 
+# ── System Configuration ──────────────────────────────────────
 - name: Set Timezone
   community.general.timezone:
     name: "{{ timezone }}"
   when: ansible_service_mgr == "systemd"
 
+# ── Firewall ───────────────────────────────────────────────────
 - name: Ensure firewalld is installed
   ansible.builtin.package:
     name: firewalld
@@ -56,6 +59,7 @@
     permanent: true
     immediate: true
 
+# ── SELinux ────────────────────────────────────────────────────
 - name: Ensure SELinux is enforcing
   ansible.posix.selinux:
     policy: targeted
@@ -70,6 +74,7 @@
       - setroubleshoot-server
     state: present
 
+# ── Audit ──────────────────────────────────────────────────────
 - name: Install auditd
   ansible.builtin.package:
     name:
@@ -101,6 +106,7 @@
     state: started
     enabled: true
 
+# ── Kernel Hardening ───────────────────────────────────────────
 - name: Disable IP forwarding and redirects
   ansible.posix.sysctl:
     name: "{{ item.name }}"
@@ -131,6 +137,7 @@
     - name: net.ipv4.icmp_ignore_bogus_error_responses
       value: "1"
 
+# ── Fail2ban ───────────────────────────────────────────────────
 - name: Install fail2ban
   ansible.builtin.package:
     name: fail2ban
@@ -149,6 +156,7 @@
     state: started
     enabled: true
 
+# ── System Packages ────────────────────────────────────────────
 - name: Ensure EPEL repository is enabled
   ansible.builtin.package:
     name: epel-release

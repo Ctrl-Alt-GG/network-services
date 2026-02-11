@@ -1,11 +1,13 @@
 ---
+# ── Validation ────────────────────────────────────────────────
 - name: Fail if users array is not defined or empty
-  fail:
+  ansible.builtin.fail:
     msg: "ERROR: 'users' variable must be defined and contain at least one user"
   when: users is not defined or users | length == 0
 
+# ── User Management ───────────────────────────────────────────
 - name: Create users
-  user:
+  ansible.builtin.user:
     name: "{{ item.name }}"
     shell: "{{ item.shell | default('/bin/bash') }}"
     groups: "{{ item.groups | default(['wheel']) }}"
@@ -15,7 +17,7 @@
   loop: "{{ users }}"
 
 - name: Add SSH public keys
-  authorized_key:
+  ansible.posix.authorized_key:
     user: "{{ item.name }}"
     key: "{{ item.ssh_key_url }}"
     state: present

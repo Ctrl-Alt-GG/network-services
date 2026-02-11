@@ -1,0 +1,6 @@
+# {{ansible_managed}}
+rocommunity {{ librenms_snmp_community }}
+syslocation {{ librenms_snmp_location | default('Server Room') }}
+syscontact {{ librenms_snmp_contact | default('Admin <admin@localhost>') }}
+dontLogTCPWrappersConnects yes
+extend distro /usr/bin/distro

@@ -1,0 +1,20 @@
+# {{ansible_managed}}
+# Private zone: {{ zone.name }}
+server:
+{% for domain in zone.private_domains | default([zone.name]) %}
+  private-domain: "{{ domain }}"
+{% endfor %}
+  domain-insecure: "{{ zone.name }}"
+  local-zone: "{{ zone.name }}" {% if zone.transparent | default(false) %}transparent{% else %}static{% endif %}
+
+{% for record in zone.records | default([]) %}
+  local-data: "{{ record }}"
+{% endfor %}
+
+{% if zone.reverse_zone is defined %}
+  domain-insecure: "{{ zone.reverse_zone }}"
+  local-zone: "{{ zone.reverse_zone }}" static
+{% for ptr in zone.ptr_records | default([]) %}
+  local-data: "{{ ptr }}"
+{% endfor %}
+{% endif %}

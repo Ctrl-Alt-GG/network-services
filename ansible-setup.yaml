@@ -5,7 +5,7 @@
 
   vars_prompt:
     - name: "target_host"
-      prompt: "Machine to set up
+      prompt: "Machine to set up"
       private: no
     - name: "username"
       prompt: "User to SSH as (needs ROOT access)"
@@ -29,12 +29,12 @@
 
   tasks:
     - name: Create ansible group
-      group:
+      ansible.builtin.group:
         name: "{{ ansible_group }}"
         state: present
 
     - name: Create ansible user
-      user:
+      ansible.builtin.user:
         name: "{{ ansible_user }}"
         group: "{{ ansible_group }}"
         home: "{{ ansible_home }}"
@@ -44,7 +44,7 @@
         state: present
 
     - name: Set up SSH directory for ansible user
-      file:
+      ansible.builtin.file:
         path: "{{ ansible_home }}/.ssh"
         state: directory
         owner: "{{ ansible_user }}"
@@ -52,7 +52,7 @@
         mode: '0700'
 
     - name: Generate SSH key pair for ansible user
-      openssh_keypair:
+      community.crypto.openssh_keypair:
         path: "{{ ansible_home }}/.ssh/id_ed25519"
         type: ed25519
         owner: "{{ ansible_user }}"
@@ -62,7 +62,7 @@
       register: ssh_keypair
 
     - name: Create authorized_keys file
-      file:
+      ansible.builtin.file:
         path: "{{ ansible_home }}/.ssh/authorized_keys"
         state: touch
         owner: "{{ ansible_user }}"
@@ -70,14 +70,14 @@
         mode: '0600'
 
     - name: Add public key to authorized_keys (self-authorization)
-      authorized_key:
+      ansible.posix.authorized_key:
         user: "{{ ansible_user }}"
         key: "{{ ssh_keypair.public_key }}"
         comment: "{{ ssh_key_comment }}"
         state: present
 
     - name: Configure passwordless sudo for ansible user
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/sudoers.d/ansible
         line: "{{ ansible_user }} ALL=(ALL) NOPASSWD: ALL"
         create: yes
@@ -87,5 +87,5 @@
         validate: 'visudo -cf %s'
 
     - name: Disable password login only for ansible user
-      command: "passwd -l {{ ansible_user_name }}"
+      ansible.builtin.command: "passwd -l {{ ansible_username }}"
 ...

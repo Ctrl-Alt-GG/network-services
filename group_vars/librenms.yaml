@@ -1,0 +1,7 @@
+---
+librenms_domain: librenms.example.com
+librenms_db_password: changeme
+librenms_snmp_community: public
+librenms_admin_user: admin
+librenms_admin_password: changeme
+...

@@ -1,0 +1,25 @@
+# {{ansible_managed}}
+server {
+    listen 80;
+    server_name {{ librenms_domain }};
+    root {{ librenms_install_dir }}/html;
+    index index.php;
+    charset utf-8;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include fastcgi.conf;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass unix:/run/php-fpm/librenms.sock;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+
+    access_log /var/log/nginx/librenms_access.log;
+    error_log /var/log/nginx/librenms_error.log;
+}

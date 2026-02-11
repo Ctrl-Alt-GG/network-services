@@ -16,4 +16,10 @@ all:
       hosts:
         ddi-01:
         ddi-02:
+    librenms:
+      hosts:
+        # librenms-01:
+    lancache:
+      hosts:
+        # lancache-01:
 ...

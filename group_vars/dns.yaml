@@ -6,4 +6,15 @@ lancache:
 upstreams:
   - 192.168.69.18
   - 192.168.69.3
+
+private_zones:
+  - name: home.lab
+    records:
+      - "gateway.home.lab.    IN A 192.168.128.1"
+      - "ddi-01.home.lab.     IN A 192.168.130.1"
+      - "ddi-02.home.lab.     IN A 192.168.130.53"
+      - "sshjump.home.lab.    IN A 192.168.130.22"
+    reverse_zone: 128.168.192.in-addr.arpa
+    ptr_records:
+      - "1.128.168.192.in-addr.arpa.  IN PTR gateway.home.lab."
 ...

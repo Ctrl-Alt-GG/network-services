@@ -1,0 +1,6 @@
+---
+lancache_cache_dir: /srv/lancache/data
+lancache_logs_dir: /srv/lancache/logs
+lancache_cache_disk_size: 500g
+lancache_upstream_dns: 1.1.1.1
+...
