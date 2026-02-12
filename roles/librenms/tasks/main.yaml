@@ -100,8 +100,6 @@
     version: "{{ librenms_branch }}"
     depth: 1
     accept_hostkey: yes
-  become: true
-  become_user: "{{ librenms_user }}"
   register: librenms_clone
   when: not librenms_install_dir_stat.stat.exists or (librenms_install_dir_stat.stat.exists and not lib_git_stat.stat.exists)
 
@@ -114,8 +112,6 @@
     update: yes
     force: yes
     accept_hostkey: yes
-  become: true
-  become_user: "{{ librenms_user }}"
   register: librenms_clone
   when: librenms_install_dir_stat.stat.exists and lib_git_stat.stat.exists
 
