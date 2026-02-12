@@ -140,7 +140,7 @@
       value: "1"
 
 # ── EPEL ───────────────────────────────────────────────────────
-- name: Enable EPEL repository
+- name: Ensure EPEL repository is enabled
   ansible.builtin.package:
     name: epel-release
     state: present
@@ -165,11 +165,6 @@
     enabled: true
 
 # ── System Packages ────────────────────────────────────────────
-- name: Ensure EPEL repository is enabled
-  ansible.builtin.package:
-    name: epel-release
-    state: present
-
 - name: Ensure debugging tools are installed
   ansible.builtin.package:
     name:
