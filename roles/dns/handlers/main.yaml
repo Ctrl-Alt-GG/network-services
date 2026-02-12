@@ -10,9 +10,8 @@
     state: reloaded
 
 - name: Restart auditd
-  ansible.builtin.service:
-    name: auditd
-    state: restarted
+  ansible.builtin.command: augenrules --load
+  changed_when: false
 
 - name: Restorecon unbound
   ansible.builtin.command: |

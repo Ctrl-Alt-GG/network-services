@@ -5,9 +5,8 @@
     state: restarted
 
 - name: Restart auditd
-  ansible.builtin.service:
-    name: auditd
-    state: restarted
+  ansible.builtin.command: augenrules --load
+  changed_when: false
 
 - name: Restorecon lancache
   ansible.builtin.command: restorecon -Rv /srv/lancache
