@@ -8,4 +8,6 @@ librenms_php_version: "8.2"
 librenms_db_host: localhost
 librenms_db_name: librenms
 librenms_db_user: librenms
+librenms_url_scheme: http
+librenms_session_same_site: lax
 ...

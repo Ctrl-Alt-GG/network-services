@@ -176,6 +176,15 @@
     - bootstrap/cache
     - storage
 
+- name: Restore SELinux context for Laravel writable directories
+  ansible.builtin.command:
+    cmd: >-
+      restorecon -Rv
+      {{ librenms_install_dir }}/storage
+      {{ librenms_install_dir }}/bootstrap/cache
+  changed_when: false
+  when: ansible_selinux.status == 'enabled'
+
 - name: Install LibreNMS Python dependencies
   ansible.builtin.pip:
     requirements: "{{ librenms_install_dir }}/requirements.txt"
@@ -239,6 +248,7 @@
     mode: '0640'
   vars:
     _app_key: "{{ existing_app_key.stdout | default('') }}"
+  register: librenms_env_template
 
 - name: Generate APP_KEY if not set
   ansible.builtin.command:
@@ -247,6 +257,14 @@
   become: true
   become_user: "{{ librenms_user }}"
   when: (existing_app_key.stdout | default('')) | length == 0
+
+- name: Clear Laravel optimized caches after .env change
+  ansible.builtin.command:
+    cmd: php artisan optimize:clear
+    chdir: "{{ librenms_install_dir }}"
+  become: true
+  become_user: "{{ librenms_user }}"
+  when: librenms_env_template.changed
 
 - name: Run database migrations
   ansible.builtin.command:

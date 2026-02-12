@@ -1,9 +1,15 @@
 # {{ansible_managed}}
 APP_KEY={{ _app_key }}
-APP_URL=http://{{ librenms_domain }}
+APP_URL={{ librenms_url_scheme }}://{{ librenms_domain }}
 APP_TIMEZONE={{ timezone | default('UTC') }}
 
 DB_HOST={{ librenms_db_host }}
 DB_DATABASE={{ librenms_db_name }}
 DB_USERNAME={{ librenms_db_user }}
 DB_PASSWORD={{ librenms_db_password }}
+
+SESSION_DRIVER=file
+SESSION_PATH=/
+SESSION_DOMAIN=null
+SESSION_SAME_SITE={{ librenms_session_same_site }}
+SESSION_SECURE_COOKIE={{ (librenms_url_scheme == 'https') | ternary('true', 'false') }}
