@@ -4,8 +4,7 @@ services:
     image: {{ lancache_monolithic_image }}
     container_name: lancache
     restart: unless-stopped
-    ports:
-      - "80:80"
+    network_mode: host
     volumes:
       - {{ lancache_cache_dir }}:/data/cache
       - {{ lancache_logs_dir }}:/data/logs
@@ -22,8 +21,7 @@ services:
     image: {{ lancache_sniproxy_image }}
     container_name: lancache-sniproxy
     restart: unless-stopped
-    ports:
-      - "443:443"
+    network_mode: host
     environment:
       UPSTREAM_DNS: "{{ lancache_upstream_dns }}"
     depends_on:
