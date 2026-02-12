@@ -3,8 +3,8 @@ ansible_become: true
 users:
   - name: tormakris
     ssh_key_url: "https://static.tormakristof.eu/ssh.keys"
-  - name: marci
-    ssh_key_url: "https://marcsello.com/ssh"
+#  - name: marci
+#    ssh_key_url: "https://marcsello.com/ssh"
   - name: bfinta
     ssh_key_url: https://github.com/bfinta.keys
 ...
