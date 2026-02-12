@@ -56,6 +56,15 @@
       - rrdtool
     state: present
 
+- name: Configure global PHP timezone
+  ansible.builtin.copy:
+    dest: /etc/php.d/99-timezone.ini
+    content: "date.timezone = {{ timezone | default('UTC') }}\n"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart php-fpm
+
 # ── User Setup ────────────────────────────────────────────────
 - name: Ensure librenms group exists
   ansible.builtin.group:
