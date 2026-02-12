@@ -16,13 +16,3 @@ services:
       nofile:
         soft: 65536
         hard: 65536
-
-  sniproxy:
-    image: {{ lancache_sniproxy_image }}
-    container_name: lancache-sniproxy
-    restart: unless-stopped
-    network_mode: host
-    environment:
-      UPSTREAM_DNS: "{{ lancache_upstream_dns }}"
-    depends_on:
-      - monolithic
