@@ -140,7 +140,7 @@
       value: "1"
 
 # ── EPEL ───────────────────────────────────────────────────────
-- name: Install fail2ban
+- name: Enable EPEL repository
   ansible.builtin.package:
     name: epel-release
     state: present
