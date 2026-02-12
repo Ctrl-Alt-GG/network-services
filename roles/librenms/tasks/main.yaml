@@ -93,6 +93,10 @@
   args:
     removes: "{{ librenms_install_dir }}"
 
+- name: Configure git safe.directory for librenms
+  ansible.builtin.command:
+    cmd: "git config --global --add safe.directory {{ librenms_install_dir }}"
+
 - name: Clone librenms if not present
   ansible.builtin.git:
     repo: "{{ librenms_repo }}"
