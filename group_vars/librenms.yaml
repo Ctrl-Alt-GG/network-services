@@ -1,7 +1,7 @@
 ---
-librenms_domain: librenms.example.com
-librenms_db_password: changeme
+librenms_domain: librenms.ctrl-alt-agg.hu
+librenms_db_password: 7f0cd8e0-136f-406b-8665-9f136e4d9b38
 librenms_snmp_community: public
 librenms_admin_user: admin
-librenms_admin_password: changeme
+librenms_admin_password: f98cd4b6-c650-4460-8263-432629e5a4fb
 ...
