@@ -52,6 +52,12 @@
     state: present
 
 # ── User Setup ────────────────────────────────────────────────
+- name: Ensure librenms group exists
+  ansible.builtin.group:
+    name: "{{ librenms_group }}"
+    system: true
+    state: present
+
 - name: Create librenms system user
   ansible.builtin.user:
     name: "{{ librenms_user }}"
@@ -60,12 +66,6 @@
     shell: /bin/bash
     system: true
     create_home: false
-    state: present
-
-- name: Ensure librenms group exists
-  ansible.builtin.group:
-    name: "{{ librenms_group }}"
-    system: true
     state: present
 
 - name: Add nginx user to librenms group
