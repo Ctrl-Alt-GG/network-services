@@ -13,3 +13,4 @@ pm.max_children = {{ librenms_php_fpm_max_children | default(50) }}
 pm.start_servers = {{ librenms_php_fpm_start_servers | default(5) }}
 pm.min_spare_servers = {{ librenms_php_fpm_min_spare | default(5) }}
 pm.max_spare_servers = {{ librenms_php_fpm_max_spare | default(35) }}
+php_admin_value[date.timezone] = {{ ansible_date_time.tz | default(timezone | default('UTC')) }}

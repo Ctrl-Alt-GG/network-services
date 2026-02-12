@@ -47,6 +47,11 @@
       - acl
       - fping
       - python3-PyMySQL
+      - python3-pip
+      - python3-setuptools
+      - python3-psutil
+      - python3-redis
+      - python3-dotenv
       - unzip
       - rrdtool
     state: present
@@ -135,6 +140,18 @@
   register: composer_result
   changed_when: "'Nothing to install' not in composer_result.stderr"
 
+- name: Ensure Laravel storage framework directories exist
+  ansible.builtin.file:
+    path: "{{ librenms_install_dir }}/storage/framework/{{ item }}"
+    owner: "{{ librenms_user }}"
+    group: "{{ librenms_group }}"
+    mode: '0775'
+    state: directory
+  loop:
+    - sessions
+    - views
+    - cache
+
 - name: Set ACL permissions on writable directories
   ansible.posix.acl:
     path: "{{ librenms_install_dir }}/{{ item }}"
@@ -149,6 +166,11 @@
     - logs
     - bootstrap/cache
     - storage
+
+- name: Install LibreNMS Python dependencies
+  ansible.builtin.pip:
+    requirements: "{{ librenms_install_dir }}/requirements.txt"
+    executable: pip3
 
 # ── MariaDB Setup ─────────────────────────────────────────────
 - name: Deploy MariaDB configuration for LibreNMS
@@ -330,6 +352,32 @@
     name: librenms-scheduler.timer
     enabled: true
     state: started
+
+# ── Utilities ──────────────────────────────────────────────────
+- name: Install lnms shortcut
+  ansible.builtin.file:
+    src: "{{ librenms_install_dir }}/lnms"
+    dest: /usr/bin/lnms
+    state: link
+    force: true
+
+- name: Install lnms bash completion
+  ansible.builtin.copy:
+    src: "{{ librenms_install_dir }}/misc/lnms-completion.bash"
+    dest: /etc/bash_completion.d/lnms-completion.bash
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Install LibreNMS logrotate configuration
+  ansible.builtin.copy:
+    src: "{{ librenms_install_dir }}/misc/librenms.logrotate"
+    dest: /etc/logrotate.d/librenms
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
 
 # ── SELinux ───────────────────────────────────────────────────
 - name: Install SELinux management packages
