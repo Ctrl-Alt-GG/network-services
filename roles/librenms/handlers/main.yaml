@@ -20,9 +20,8 @@
     state: restarted
 
 - name: Restart auditd
-  ansible.builtin.service:
-    name: auditd
-    state: restarted
+  ansible.builtin.command: augenrules --load
+  changed_when: false
 
 - name: Systemctl daemon-reload
   ansible.builtin.systemd:
