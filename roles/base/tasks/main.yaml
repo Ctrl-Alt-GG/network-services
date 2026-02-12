@@ -139,6 +139,12 @@
     - name: net.ipv4.icmp_ignore_bogus_error_responses
       value: "1"
 
+# ── EPEL ───────────────────────────────────────────────────────
+- name: Install fail2ban
+  ansible.builtin.package:
+    name: epel-release
+    state: present
+
 # ── Fail2ban ───────────────────────────────────────────────────
 - name: Install fail2ban
   ansible.builtin.package:
