@@ -48,6 +48,32 @@
     - "{{ lancache_cache_dir }}"
     - "{{ lancache_logs_dir }}"
 
+# ── SELinux ───────────────────────────────────────────────────
+- name: Install SELinux management packages
+  ansible.builtin.dnf:
+    name:
+      - policycoreutils-python-utils
+      - selinux-policy-devel
+    state: present
+  when: ansible_selinux.status == 'enabled'
+
+- name: Set SELinux file contexts for LANcache data
+  community.general.sefcontext:
+    target: "{{ item.target }}"
+    setype: "{{ item.setype }}"
+    state: present
+  loop:
+    - target: "/srv/lancache(/.*)?"
+      setype: container_file_t
+    - target: "/opt/lancache(/.*)?"
+      setype: container_file_t
+  when: ansible_selinux.status == 'enabled'
+
+- name: Restore SELinux contexts for LANcache paths
+  ansible.builtin.command: restorecon -Rv /srv/lancache /opt/lancache
+  changed_when: false
+  when: ansible_selinux.status == 'enabled'
+
 # ── Deploy Compose Stack ──────────────────────────────────────
 - name: Deploy docker-compose.yaml
   ansible.builtin.template:
@@ -79,28 +105,6 @@
     state: enabled
     permanent: true
     immediate: true
-
-# ── SELinux ───────────────────────────────────────────────────
-- name: Install SELinux management packages
-  ansible.builtin.dnf:
-    name:
-      - policycoreutils-python-utils
-      - selinux-policy-devel
-    state: present
-  when: ansible_selinux.status == 'enabled'
-
-- name: Set SELinux file contexts for LANcache data
-  community.general.sefcontext:
-    target: "{{ item.target }}"
-    setype: "{{ item.setype }}"
-    state: present
-  loop:
-    - target: "/srv/lancache(/.*)?"
-      setype: container_file_t
-    - target: "/opt/lancache(/.*)?"
-      setype: container_file_t
-  notify: Restorecon lancache
-  when: ansible_selinux.status == 'enabled'
 
 # ── Audit Rules ───────────────────────────────────────────────
 - name: Add LANcache audit rules

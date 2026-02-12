@@ -1,4 +1,9 @@
 ---
+- name: Restorecon lancache
+  ansible.builtin.command: restorecon -Rv /srv/lancache
+  changed_when: false
+  when: ansible_selinux.status == 'enabled'
+
 - name: Restart docker
   ansible.builtin.systemd:
     name: docker
@@ -12,9 +17,4 @@
 - name: Restart auditd
   ansible.builtin.command: augenrules --load
   changed_when: false
-
-- name: Restorecon lancache
-  ansible.builtin.command: restorecon -Rv /srv/lancache
-  changed_when: false
-  when: ansible_selinux.status == 'enabled'
 ...
