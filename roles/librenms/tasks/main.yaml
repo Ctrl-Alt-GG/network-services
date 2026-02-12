@@ -75,25 +75,49 @@
     append: true
 
 # ── Application Clone & Composer ──────────────────────────────
-- name: Ensure install directory exists
-  ansible.builtin.file:
+- name: Check for existing destination directory
+  ansible.builtin.stat:
     path: "{{ librenms_install_dir }}"
-    state: directory
-    owner: "{{ librenms_user }}"
-    group: "{{ librenms_group }}"
-    mode: '0771'
+  register: librenms_install_dir_stat
 
-- name: Clone LibreNMS repository
+- name: Check if existing destination is a git repo
+  ansible.builtin.stat:
+    path: "{{ librenms_install_dir }}/.git"
+  when: librenms_install_dir_stat.stat.exists
+  register: lib_git_stat
+
+- name: Delete non-git existing directory
+  ansible.builtin.command:
+    cmd: rm -rf "{{ librenms_install_dir }}"
+  when: librenms_install_dir_stat.stat.exists and not lib_git_stat.stat.exists
+  args:
+    removes: "{{ librenms_install_dir }}"
+
+- name: Clone librenms if not present
   ansible.builtin.git:
     repo: "{{ librenms_repo }}"
     dest: "{{ librenms_install_dir }}"
     version: "{{ librenms_branch }}"
-    update: true
-    force: false
     depth: 1
+    accept_hostkey: yes
   become: true
   become_user: "{{ librenms_user }}"
   register: librenms_clone
+  when: not librenms_install_dir_stat.stat.exists or (librenms_install_dir_stat.stat.exists and not lib_git_stat.stat.exists)
+
+- name: Update existing librenms git checkout
+  ansible.builtin.git:
+    repo: "{{ librenms_repo }}"
+    dest: "{{ librenms_install_dir }}"
+    version: "{{ librenms_branch }}"
+    depth: 1
+    update: yes
+    force: yes
+    accept_hostkey: yes
+  become: true
+  become_user: "{{ librenms_user }}"
+  register: librenms_clone
+  when: librenms_install_dir_stat.stat.exists and lib_git_stat.stat.exists
 
 - name: Set LibreNMS directory ownership
   ansible.builtin.file:
