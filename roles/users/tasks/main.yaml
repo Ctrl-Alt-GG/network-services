@@ -1,11 +1,11 @@
 ---
-# ── Validation ────────────────────────────────────────────────
+# --- Validation ---
 - name: Fail if users array is not defined or empty
   ansible.builtin.fail:
     msg: "ERROR: 'users' variable must be defined and contain at least one user"
   when: users is not defined or users | length == 0
 
-# ── User Management ───────────────────────────────────────────
+# --- User Management ---
 - name: Create users
   ansible.builtin.user:
     name: "{{ item.name }}"

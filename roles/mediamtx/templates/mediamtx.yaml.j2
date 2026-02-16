@@ -1,0 +1,144 @@
+# {{ansible_managed}}
+###############################################
+# General settings
+###############################################
+
+logLevel: {{ mediamtx_log_level }}
+logDestinations: {{ mediamtx_log_destinations | to_json }}
+
+###############################################
+# RTMP settings (primary ingest)
+###############################################
+
+rtmp: {{ mediamtx_rtmp_enabled | lower }}
+rtmpAddress: :{{ mediamtx_rtmp_port }}
+
+###############################################
+# RTSP settings
+###############################################
+
+rtsp: {{ mediamtx_rtsp_enabled | lower }}
+protocols: [udp, tcp]
+rtspAddress: :{{ mediamtx_rtsp_port }}
+
+###############################################
+# HLS settings (browser preview)
+###############################################
+
+hls: {{ mediamtx_hls_enabled | lower }}
+hlsAddress: :{{ mediamtx_hls_port }}
+hlsAlwaysRemux: false
+hlsVariant: mpegts
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+hlsSegmentMaxSize: 50M
+
+###############################################
+# Recording settings
+###############################################
+
+{% if mediamtx_record_enabled %}
+record: true
+recordPath: {{ mediamtx_data_dir }}/recordings/{{ mediamtx_record_path }}
+recordFormat: fmp4
+recordPartDuration: 1s
+recordSegmentDuration: 1h
+recordDeleteAfter: {{ mediamtx_record_delete_after }}
+{% else %}
+record: false
+{% endif %}
+
+###############################################
+# API settings
+###############################################
+
+api: {{ mediamtx_api_enabled | lower }}
+apiAddress: :{{ mediamtx_api_port }}
+metrics: false
+pprof: false
+
+###############################################
+# Authentication
+###############################################
+
+authInternalUsers:
+{% if mediamtx_ingest.stream_key %}
+  # Publisher authentication (stream key)
+  - user: publish
+    pass: "{{ mediamtx_ingest.stream_key }}"
+    permissions:
+      - action: publish
+        path: "{{ mediamtx_ingest.path }}"
+      - action: read
+        path: ""
+      - action: playback
+        path: ""
+{% endif %}
+{% for reader in mediamtx_readers | default([]) %}
+  - user: {{ reader.user }}
+    pass: "{{ reader.password }}"
+    permissions:
+      - action: read
+        path: ""
+      - action: playback
+        path: ""
+{% if reader.ips | default([]) %}
+    ips: {{ reader.ips | to_json }}
+{% endif %}
+{% endfor %}
+{% if not mediamtx_ingest.stream_key and not mediamtx_readers %}
+  []
+{% endif %}
+
+###############################################
+# Path configuration
+###############################################
+
+pathDefaults:
+  source: publisher
+  sourceOnDemand: false
+  sourceOnDemandStartTimeout: 10s
+  sourceOnDemandCloseAfter: 10s
+  maxReaders: 0
+  record: {{ mediamtx_record_enabled | lower }}
+
+paths:
+  # Ingest path for streamer
+  {{ mediamtx_ingest.path }}:
+{% if mediamtx_fallback.enabled | default(false) %}
+    # Fallback video source (plays when no publisher connected)
+    source: ffmpeg:{{ mediamtx_fallback.video_path }}{% if mediamtx_fallback.loop | default(true) %} -stream_loop -1{% endif %}
+
+    sourceOnDemand: false
+    # Allow live publisher to override the fallback
+    overridePublisher: true
+{% else %}
+    source: publisher
+{% endif %}
+{% if mediamtx_ingest.stream_key %}
+    # Require stream key for publishing
+    publishUser: publish
+    publishPass: "{{ mediamtx_ingest.stream_key }}"
+{% endif %}
+{% if mediamtx_record_enabled %}
+    record: true
+{% endif %}
+{% set enabled_destinations = [] %}
+{% for name, dest in mediamtx_restream_destinations.items() %}
+{% if dest.enabled | default(false) %}
+{% set _ = enabled_destinations.append({'name': name, 'url': dest.url, 'key': dest.stream_key}) %}
+{% endif %}
+{% endfor %}
+{% if enabled_destinations %}
+    # Restream to platforms when stream becomes ready
+    runOnReady: >-
+{% for dest in enabled_destinations %}
+      ffmpeg -i rtmp://127.0.0.1:{{ mediamtx_rtmp_port }}/{{ mediamtx_ingest.path }}
+      {{ mediamtx_ffmpeg_options }}
+      "{{ dest.url }}/{{ dest.key }}"{% if not loop.last %} &{% endif %}
+
+{% endfor %}
+    runOnReadyRestart: true
+{% endif %}
+

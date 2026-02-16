@@ -22,4 +22,7 @@ all:
     lancache:
       hosts:
         # lancache-01:
+    mediamtx:
+      hosts:
+        # mediamtx-01:
 ...

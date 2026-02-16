@@ -1,0 +1,9 @@
+---
+- name: "Deploy MediaMTX streaming server"
+  hosts: mediamtx
+  roles:
+    - base
+    - users
+    - docker
+    - mediamtx
+...

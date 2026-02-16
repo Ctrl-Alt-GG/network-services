@@ -4,5 +4,6 @@
   roles:
     - base
     - users
+    - docker
     - lancache
 ...

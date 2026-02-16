@@ -1,5 +1,5 @@
 ---
-# ── PHP Repository ────────────────────────────────────────────
+# --- PHP Repository ---
 - name: Install Remi repository
   ansible.builtin.dnf:
     name: "https://rpms.remirepo.net/enterprise/remi-release-{{ ansible_distribution_major_version }}.rpm"
@@ -18,7 +18,7 @@
   register: php_module_enable
   changed_when: "'Nothing to do' not in php_module_enable.stdout"
 
-# ── Package Installation ──────────────────────────────────────
+# --- Package Installation ---
 - name: Install LibreNMS dependencies
   ansible.builtin.dnf:
     name:
@@ -65,7 +65,7 @@
     mode: '0644'
   notify: Restart php-fpm
 
-# ── User Setup ────────────────────────────────────────────────
+# --- User Setup ---
 - name: Ensure librenms group exists
   ansible.builtin.group:
     name: "{{ librenms_group }}"
@@ -88,7 +88,7 @@
     groups: "{{ librenms_group }}"
     append: true
 
-# ── Application Clone & Composer ──────────────────────────────
+# --- Application Clone & Composer ---
 - name: Check for existing destination directory
   ansible.builtin.stat:
     path: "{{ librenms_install_dir }}"
@@ -190,7 +190,7 @@
     requirements: "{{ librenms_install_dir }}/requirements.txt"
     executable: pip3
 
-# ── MariaDB Setup ─────────────────────────────────────────────
+# --- MariaDB Setup ---
 - name: Deploy MariaDB configuration for LibreNMS
   ansible.builtin.template:
     src: librenms-mariadb.cnf.j2
@@ -224,7 +224,7 @@
     login_unix_socket: /var/lib/mysql/mysql.sock
   no_log: true
 
-# ── LibreNMS Configuration ────────────────────────────────────
+# --- LibreNMS Configuration ---
 - name: Check for existing .env file
   ansible.builtin.stat:
     path: "{{ librenms_install_dir }}/.env"
@@ -292,7 +292,7 @@
   when: librenms_admin_user is defined and librenms_admin_password is defined
   no_log: true
 
-# ── Web Server ────────────────────────────────────────────────
+# --- Web Server ---
 - name: Remove default Nginx server block
   ansible.builtin.file:
     path: /etc/nginx/conf.d/default.conf
@@ -323,7 +323,7 @@
     state: absent
   notify: Restart php-fpm
 
-# ── SNMP ──────────────────────────────────────────────────────
+# --- SNMP ---
 - name: Deploy SNMP daemon configuration
   ansible.builtin.template:
     src: librenms-snmpd.conf.j2
@@ -341,7 +341,7 @@
     group: root
     mode: '0755'
 
-# ── Scheduled Tasks ───────────────────────────────────────────
+# --- Scheduled Tasks ---
 - name: Deploy LibreNMS cron job
   ansible.builtin.copy:
     src: "{{ librenms_install_dir }}/dist/librenms.cron"
@@ -380,7 +380,7 @@
     enabled: true
     state: started
 
-# ── Utilities ──────────────────────────────────────────────────
+# --- Utilities ---
 - name: Install lnms shortcut
   ansible.builtin.file:
     src: "{{ librenms_install_dir }}/lnms"
@@ -406,7 +406,7 @@
     group: root
     mode: '0644'
 
-# ── SELinux ───────────────────────────────────────────────────
+# --- SELinux ---
 - name: Install SELinux management packages
   ansible.builtin.dnf:
     name:
@@ -443,7 +443,7 @@
   notify: Restorecon librenms
   when: ansible_selinux.status == 'enabled'
 
-# ── Security (project conventions) ────────────────────────────
+# --- Security (project conventions) ---
 - name: Allow HTTP through firewall
   ansible.posix.firewalld:
     service: http
@@ -471,7 +471,7 @@
       -w /etc/my.cnf.d/librenms.cnf -p wa -k librenms_mariadb
   notify: Restart auditd
 
-# ── Enable Services ───────────────────────────────────────────
+# --- Enable Services ---
 - name: Enable and start Nginx
   ansible.builtin.systemd:
     name: nginx

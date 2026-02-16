@@ -1,0 +1,84 @@
+---
+# MediaMTX version (Docker image tag)
+mediamtx_version: "1.9.3"
+mediamtx_image: "bluenviron/mediamtx:{{ mediamtx_version }}"
+
+# Directories
+mediamtx_config_dir: /etc/mediamtx
+mediamtx_data_dir: /var/lib/mediamtx
+
+# --- Ingest Configuration ---
+# Single stream ingest point with stream key authentication
+mediamtx_ingest:
+  # Path name where streamer publishes (e.g., rtmp://host:1935/live)
+  path: live
+  # Stream key required for publishing (acts as password)
+  # Use ansible-vault for production: !vault |
+  stream_key: ""
+
+# --- Fallback Video ---
+# Play a video file when no live stream is being ingested
+# The fallback stops automatically when a publisher connects
+mediamtx_fallback:
+  enabled: false
+  # Path to video file inside the container (mounted from host)
+  video_path: /media/fallback.mp4
+  # Host path where fallback video is stored
+  host_path: /var/lib/mediamtx/media
+  # Loop the video continuously
+  loop: true
+
+# --- Restream Destinations ---
+# Forward ingested stream to multiple platforms
+# Each destination requires platform-specific stream key
+mediamtx_restream_destinations:
+  twitch:
+    enabled: false
+    # Twitch ingest server (find closest: https://stream.twitch.tv/ingests/)
+    url: "rtmp://live.twitch.tv/app"
+    stream_key: ""
+  youtube:
+    enabled: false
+    url: "rtmp://a.rtmp.youtube.com/live2"
+    stream_key: ""
+  kick:
+    enabled: false
+    # Kick ingest URL from dashboard
+    url: "rtmps://fa723fc1b171.global-contribute.live-video.net/app"
+    stream_key: ""
+
+# --- Protocol Settings ---
+# RTMP - primary ingest protocol
+mediamtx_rtmp_enabled: true
+mediamtx_rtmp_port: 1935
+
+# RTSP - alternative ingest/playback
+mediamtx_rtsp_enabled: false
+mediamtx_rtsp_port: 8554
+
+# HLS - browser playback (useful for preview)
+mediamtx_hls_enabled: true
+mediamtx_hls_port: 8888
+
+# API - management and monitoring
+mediamtx_api_enabled: true
+mediamtx_api_port: 9997
+
+# --- Recording ---
+mediamtx_record_enabled: false
+mediamtx_record_path: "%path/%Y-%m-%d_%H-%M-%S"
+mediamtx_record_delete_after: 24h
+
+# --- Advanced Settings ---
+# Additional readers (viewers) - optional authentication
+# Leave empty for open read access on local network
+mediamtx_readers: []
+
+# Logging
+mediamtx_log_level: info
+mediamtx_log_destinations:
+  - stdout
+
+# FFmpeg settings for restreaming
+mediamtx_ffmpeg_options: "-c copy -f flv"
+...

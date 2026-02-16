@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  author: Ctrl-Alt-GG
+  description: Docker CE Installation Role
+  company: Ctrl-Alt-GG
+  license: "All Rights Reserved"
+  min_ansible_version: "2.14"
+  platforms:
+    - name: EL
+      versions:
+        - all
+  galaxy_tags:
+    - docker
+    - containers
+
+dependencies: []
+
+collections:
+  - ansible.posix
+  - community.general
+...

@@ -1,0 +1,19 @@
+---
+- name: Restorecon mediamtx
+  ansible.builtin.command: restorecon -Rv {{ mediamtx_config_dir }} {{ mediamtx_data_dir }}
+  changed_when: false
+  when: ansible_selinux.status == 'enabled'
+
+- name: Systemctl daemon-reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart mediamtx
+  community.docker.docker_compose_v2:
+    project_src: /opt/mediamtx
+    state: restarted
+
+- name: Restart auditd
+  ansible.builtin.command: augenrules --load
+  changed_when: false
+...

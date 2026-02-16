@@ -4,11 +4,6 @@
   changed_when: false
   when: ansible_selinux.status == 'enabled'
 
-- name: Restart docker
-  ansible.builtin.systemd:
-    name: docker
-    state: restarted
-
 - name: Restart lancache
   community.docker.docker_compose_v2:
     project_src: /opt/lancache

@@ -1,41 +1,5 @@
 ---
-# ── Docker Engine ─────────────────────────────────────────────
-- name: Install Docker prerequisites
-  ansible.builtin.dnf:
-    name:
-      - dnf-plugins-core
-    state: present
-
-- name: Add Docker CE repository
-  ansible.builtin.command:
-    cmd: dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
-    creates: /etc/yum.repos.d/docker-ce.repo
-
-- name: Install Docker CE
-  ansible.builtin.dnf:
-    name:
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
-      - docker-compose-plugin
-    state: present
-
-- name: Deploy Docker daemon configuration
-  ansible.builtin.template:
-    src: daemon.json.j2
-    dest: /etc/docker/daemon.json
-    owner: root
-    group: root
-    mode: '0644'
-  notify: Restart docker
-
-- name: Enable and start Docker
-  ansible.builtin.systemd:
-    name: docker
-    enabled: true
-    state: started
-
-# ── Cache Storage ─────────────────────────────────────────────
+# --- Cache Storage ---
 - name: Create LANcache directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -48,7 +12,7 @@
     - "{{ lancache_cache_dir }}"
     - "{{ lancache_logs_dir }}"
 
-# ── SELinux ───────────────────────────────────────────────────
+# --- SELinux ---
 - name: Install SELinux management packages
   ansible.builtin.dnf:
     name:
@@ -74,7 +38,7 @@
   changed_when: false
   when: ansible_selinux.status == 'enabled'
 
-# ── Deploy Compose Stack ──────────────────────────────────────
+# --- Deploy Compose Stack ---
 - name: Deploy docker-compose.yaml
   ansible.builtin.template:
     src: docker-compose.yaml.j2
@@ -91,7 +55,7 @@
     pull: missing
   register: lancache_compose
 
-# ── Firewall ──────────────────────────────────────────────────
+# --- Firewall ---
 - name: Allow HTTP through firewall
   ansible.posix.firewalld:
     service: http
@@ -106,7 +70,7 @@
     permanent: true
     immediate: true
 
-# ── Audit Rules ───────────────────────────────────────────────
+# --- Audit Rules ---
 - name: Add LANcache audit rules
   ansible.builtin.blockinfile:
     path: /etc/audit/rules.d/lancache.rules

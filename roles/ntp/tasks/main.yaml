@@ -1,11 +1,11 @@
 ---
-# ── Package Installation ──────────────────────────────────────
+# --- Package Installation ---
 - name: Install chrony
   ansible.builtin.dnf:
     name: chrony
     state: present
 
-# ── Configuration ─────────────────────────────────────────────
+# --- Configuration ---
 - name: Ensure chrony directories exist
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -28,7 +28,7 @@
     mode: "0644"
   notify: Restart chronyd
 
-# ── Audit Rules ───────────────────────────────────────────────
+# --- Audit Rules ---
 - name: Add NTP audit rules
   ansible.builtin.blockinfile:
     path: /etc/audit/rules.d/ntp.rules
@@ -40,7 +40,7 @@
       -w /var/lib/chrony/ -p wa -k ntp_data
   notify: Restart auditd
 
-# ── Firewall ──────────────────────────────────────────────────
+# --- Firewall ---
 - name: Allow NTP through firewall
   ansible.posix.firewalld:
     service: ntp
@@ -48,7 +48,7 @@
     permanent: true
     immediate: true
 
-# ── Enable Services ───────────────────────────────────────────
+# --- Enable Services ---
 - name: Enable and start chronyd
   ansible.builtin.systemd:
     name: chronyd

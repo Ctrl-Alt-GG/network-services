@@ -1,11 +1,11 @@
 ---
-# ── Package Installation ──────────────────────────────────────
+# --- Package Installation ---
 - name: Install Unbound
   ansible.builtin.package:
     name: unbound
     state: present
 
-# ── Configuration ─────────────────────────────────────────────
+# --- Configuration ---
 - name: Ensure config directories exist
   ansible.builtin.file:
     path: "{{ item }}"
@@ -45,7 +45,7 @@
     validate: 'unbound-checkconf %s'
   notify: Restart unbound
 
-# ── Private Zones ─────────────────────────────────────────────
+# --- Private Zones ---
 - name: Deploy private zone configurations
   ansible.builtin.template:
     src: unbound-zone.conf.j2
@@ -74,7 +74,7 @@
   when: (item.path | basename | regex_replace('\\.conf$', '')) not in (private_zones | default([]) | map(attribute='name') | list)
   notify: Restart unbound
 
-# ── LANcache Integration ──────────────────────────────────────
+# --- LANcache Integration ---
 - name: Install Git
   ansible.builtin.dnf:
     name: git
@@ -130,7 +130,7 @@
   notify: Reload unbound
   when: lancache.enabled | default(false)
 
-# ── SELinux ───────────────────────────────────────────────────
+# --- SELinux ---
 - name: Install required SELinux packages
   ansible.builtin.dnf:
     name:
@@ -139,7 +139,7 @@
     state: present
   when: ansible_selinux.status == 'enabled'
 
-# ── Firewall ──────────────────────────────────────────────────
+# --- Firewall ---
 - name: Allow DNS through firewall
   ansible.posix.firewalld:
     service: dns
@@ -147,7 +147,7 @@
     permanent: true
     immediate: true
 
-# ── Audit Rules ───────────────────────────────────────────────
+# --- Audit Rules ---
 - name: Add DNS audit rules
   ansible.builtin.blockinfile:
     path: /etc/audit/rules.d/dns.rules
@@ -159,7 +159,7 @@
       -a always,exit -F arch=b64 -S connect -F a2=16 -F success=1 -k dns_queries
   notify: Restart auditd
 
-# ── Enable Services ───────────────────────────────────────────
+# --- Enable Services ---
 - name: Enable and start Unbound
   ansible.builtin.systemd:
     name: unbound

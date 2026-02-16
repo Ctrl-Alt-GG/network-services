@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  author: Ctrl-Alt-GG
+  description: MediaMTX Streaming Server Role
+  company: Ctrl-Alt-GG
+  license: "All Rights Reserved"
+  min_ansible_version: "2.14"
+  platforms:
+    - name: EL
+      versions:
+        - all
+  galaxy_tags:
+    - networking
+    - streaming
+    - media
+
+dependencies: []
+
+collections:
+  - ansible.posix
+  - community.general
+  - community.docker
+...

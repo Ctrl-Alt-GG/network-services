@@ -1,0 +1,58 @@
+---
+# --- Docker Engine ---
+- name: Install Docker prerequisites
+  ansible.builtin.dnf:
+    name:
+      - dnf-plugins-core
+    state: present
+
+- name: Add Docker CE repository
+  ansible.builtin.command:
+    cmd: dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+    creates: /etc/yum.repos.d/docker-ce.repo
+
+- name: Install Docker CE
+  ansible.builtin.dnf:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    state: present
+
+- name: Deploy Docker daemon configuration
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart docker
+
+- name: Enable and start Docker
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started
+
+# --- Firewall ---
+- name: Allow Docker swarm management through firewall
+  ansible.posix.firewalld:
+    port: 2377/tcp
+    state: disabled
+    permanent: true
+    immediate: true
+
+# --- Audit Rules ---
+- name: Add Docker audit rules
+  ansible.builtin.blockinfile:
+    path: /etc/audit/rules.d/docker.rules
+    create: true
+    mode: '0640'
+    block: |
+      -w /etc/docker/ -p wa -k docker_config
+      -w /var/lib/docker/ -p wa -k docker_data
+      -w /usr/bin/docker -p x -k docker_exec
+      -w /usr/bin/containerd -p x -k containerd_exec
+  notify: Restart auditd
+...

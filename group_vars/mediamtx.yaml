@@ -1,0 +1,44 @@
+---
+# MediaMTX Restreaming Configuration
+# See roles/mediamtx/defaults/main.yaml for all available options
+
+# --- Ingest Configuration ---
+# Your streaming software (OBS, etc.) connects to:
+#   rtmp://<server>:1935/live/<stream_key>
+mediamtx_ingest:
+  path: live
+  stream_key: ""  # Use ansible-vault: !vault |
+
+# --- Restream Destinations ---
+# Enable platforms and add stream keys from each dashboard
+mediamtx_restream_destinations:
+  twitch:
+    enabled: false
+    url: "rtmp://live.twitch.tv/app"
+    stream_key: ""  # From Twitch Dashboard > Settings > Stream
+  youtube:
+    enabled: false
+    url: "rtmp://a.rtmp.youtube.com/live2"
+    stream_key: ""  # From YouTube Studio > Go Live > Stream Settings
+  kick:
+    enabled: false
+    url: "rtmps://fa723fc1b171.global-contribute.live-video.net/app"
+    stream_key: ""  # From Kick Dashboard > Settings > Stream Key
+
+# --- Optional Features ---
+# Fallback video (plays to destinations when no live stream)
+# Copy your video file to the host_path directory
+# mediamtx_fallback:
+#   enabled: true
+#   video_path: /media/fallback.mp4
+#   host_path: /var/lib/mediamtx/media
+#   loop: true
+
+# Local recording (saves to /var/lib/mediamtx/recordings/)
+# mediamtx_record_enabled: true
+# mediamtx_record_delete_after: 168h  # 7 days
+
+# HLS preview (view stream at http://<server>:8888/live)
+# mediamtx_hls_enabled: true
+...
+

@@ -1,0 +1,8 @@
+---
+# Docker daemon configuration options
+docker_userland_proxy: false
+docker_live_restore: true
+docker_log_driver: json-file
+docker_log_max_size: 10m
+docker_log_max_file: 3
+...

@@ -1,0 +1,19 @@
+# {{ansible_managed}}
+services:
+  mediamtx:
+    image: {{ mediamtx_image }}
+    container_name: mediamtx
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - {{ mediamtx_config_dir }}/mediamtx.yaml:/mediamtx.yaml:ro
+{% if mediamtx_record_enabled %}
+      - {{ mediamtx_data_dir }}/recordings:/var/lib/mediamtx/recordings
+{% endif %}
+{% if mediamtx_fallback.enabled | default(false) %}
+      - {{ mediamtx_fallback.host_path }}:/media:ro
+{% endif %}
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536

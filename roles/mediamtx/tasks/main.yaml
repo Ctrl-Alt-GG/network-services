@@ -1,0 +1,124 @@
+---
+# --- MediaMTX Directories ---
+- name: Create MediaMTX directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - /opt/mediamtx
+    - "{{ mediamtx_config_dir }}"
+    - "{{ mediamtx_data_dir }}"
+    - "{{ mediamtx_data_dir }}/recordings"
+
+- name: Create fallback media directory
+  ansible.builtin.file:
+    path: "{{ mediamtx_fallback.host_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: mediamtx_fallback.enabled | default(false)
+
+# --- SELinux ---
+- name: Install SELinux management packages
+  ansible.builtin.dnf:
+    name:
+      - policycoreutils-python-utils
+      - selinux-policy-devel
+    state: present
+  when: ansible_selinux.status == 'enabled'
+
+- name: Set SELinux file contexts for MediaMTX paths
+  community.general.sefcontext:
+    target: "{{ item.target }}"
+    setype: "{{ item.setype }}"
+    state: present
+  loop:
+    - target: "{{ mediamtx_config_dir }}(/.*)?"
+      setype: container_file_t
+    - target: "{{ mediamtx_data_dir }}(/.*)?"
+      setype: container_file_t
+    - target: "/opt/mediamtx(/.*)?"
+      setype: container_file_t
+  when: ansible_selinux.status == 'enabled'
+  notify: Restorecon mediamtx
+
+- name: Restore SELinux contexts for MediaMTX paths
+  ansible.builtin.command: restorecon -Rv {{ mediamtx_config_dir }} {{ mediamtx_data_dir }} /opt/mediamtx
+  changed_when: false
+  when: ansible_selinux.status == 'enabled'
+
+# --- Configuration ---
+- name: Deploy MediaMTX configuration
+  ansible.builtin.template:
+    src: mediamtx.yaml.j2
+    dest: "{{ mediamtx_config_dir }}/mediamtx.yaml"
+    owner: root
+    group: root
+    mode: '0640'
+  notify: Restart mediamtx
+
+- name: Deploy docker-compose.yaml
+  ansible.builtin.template:
+    src: docker-compose.yaml.j2
+    dest: /opt/mediamtx/docker-compose.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart mediamtx
+
+# --- Deploy Compose Stack ---
+- name: Start MediaMTX container
+  community.docker.docker_compose_v2:
+    project_src: /opt/mediamtx
+    state: present
+    pull: missing
+  register: mediamtx_compose
+
+# --- Firewall ---
+- name: Allow RTSP through firewall
+  ansible.posix.firewalld:
+    port: "{{ mediamtx_rtsp_port }}/tcp"
+    state: enabled
+    permanent: true
+    immediate: true
+  when: mediamtx_rtsp_enabled
+
+- name: Allow RTMP through firewall
+  ansible.posix.firewalld:
+    port: "{{ mediamtx_rtmp_port }}/tcp"
+    state: enabled
+    permanent: true
+    immediate: true
+  when: mediamtx_rtmp_enabled
+
+- name: Allow HLS through firewall
+  ansible.posix.firewalld:
+    port: "{{ mediamtx_hls_port }}/tcp"
+    state: enabled
+    permanent: true
+    immediate: true
+  when: mediamtx_hls_enabled
+
+- name: Allow API through firewall
+  ansible.posix.firewalld:
+    port: "{{ mediamtx_api_port }}/tcp"
+    state: enabled
+    permanent: true
+    immediate: true
+  when: mediamtx_api_enabled
+
+# --- Audit Rules ---
+- name: Add MediaMTX audit rules
+  ansible.builtin.blockinfile:
+    path: /etc/audit/rules.d/mediamtx.rules
+    create: true
+    mode: '0640'
+    block: |
+      -w {{ mediamtx_config_dir }}/ -p wa -k mediamtx_config
+      -w /opt/mediamtx/ -p wa -k mediamtx_compose
+  notify: Restart auditd
+...
