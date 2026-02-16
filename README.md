@@ -1,6 +1,6 @@
 # Network Services
 
-Ansible playbooks for deploying DDI (DNS, DHCP, NTP), LANcache, LibreNMS monitoring, and baseline hardening on Rocky Linux 9/10 hosts.
+Ansible playbooks for deploying DDI (DNS, DHCP, NTP), LANcache, LibreNMS monitoring, MediaMTX streaming, and baseline hardening on Rocky Linux 9/10 hosts.
 
 ## Prerequisites
 
@@ -35,6 +35,7 @@ ansible-playbook ddi.yaml        # DNS + DHCP + NTP
 ansible-playbook sshjump.yaml    # SSH jump host (base + users only)
 ansible-playbook librenms.yaml   # LibreNMS monitoring stack
 ansible-playbook lancache.yaml   # LANcache content caching proxy
+ansible-playbook mediamtx.yaml   # MediaMTX streaming/restreaming
 ```
 
 ### Bootstrapping a new machine
@@ -55,6 +56,7 @@ all:
     ntp:      # Chrony NTP servers
     librenms: # LibreNMS monitoring
     lancache: # LANcache content caching
+    mediamtx: # MediaMTX streaming server
     other:    # SSH jump hosts, etc.
 ```
 
@@ -154,6 +156,21 @@ lancache:
     - 192.168.1.50   # IP of your lancache host
 ```
 
+### MediaMTX — `group_vars/mediamtx.yaml`
+
+| Variable | Description |
+| -------- | ----------- |
+| `mediamtx_ingest.path` | Stream path name (default: `live`) |
+| `mediamtx_ingest.stream_key` | Authentication key for publishers — **change this** |
+| `mediamtx_restream_destinations` | Platform configs (twitch, youtube, kick) with `enabled`, `url`, `stream_key` |
+| `mediamtx_fallback.enabled` | Play fallback video when no live stream (default: `false`) |
+| `mediamtx_fallback.video_path` | Path to fallback video inside container |
+| `mediamtx_fallback.host_path` | Host directory containing the fallback video |
+
+Additional tunables in `roles/mediamtx/defaults/main.yaml` (ports, recording, HLS, API).
+
+**Usage**: Configure your streaming software (OBS, etc.) to publish to `rtmp://<server>:1935/live` with the stream key. The stream is automatically forwarded to all enabled platforms.
+
 ## What Each Role Does
 
 | Role | Services | Hardening |
@@ -164,7 +181,9 @@ lancache:
 | **dhcp** | Kea DHCPv4 + control agent | Systemd sandboxing (`NoNewPrivileges`, `ProtectSystem=strict`), firewalld, auditd |
 | **ntp** | Chrony (with optional NTS) | Firewalld, auditd |
 | **librenms** | Nginx, PHP-FPM, MariaDB, SNMP, LibreNMS | SELinux booleans + file contexts, firewalld, auditd |
-| **lancache** | Docker, lancachenet/monolithic + sniproxy | SELinux container contexts, firewalld, auditd |
+| **docker** | Docker CE, docker-compose-plugin | Audit rules for Docker binaries and config |
+| **lancache** | lancachenet/monolithic + sniproxy (via docker role) | SELinux container contexts, firewalld, auditd |
+| **mediamtx** | MediaMTX streaming server (via docker role) | SELinux container contexts, firewalld, auditd |
 
 ## Project Structure
 
@@ -176,6 +195,7 @@ lancache:
 ├── sshjump.yaml             # Playbook: SSH jump host
 ├── librenms.yaml            # Playbook: LibreNMS
 ├── lancache.yaml            # Playbook: LANcache
+├── mediamtx.yaml            # Playbook: MediaMTX streaming
 ├── ansible-setup.yaml       # Playbook: bootstrap new machine
 ├── group_vars/
 │   ├── all.yaml             # Users (all hosts)
@@ -183,7 +203,8 @@ lancache:
 │   ├── dhcp.yaml            # Interfaces, subnets, DNS/NTP servers
 │   ├── ntp.yaml             # Upstream time servers, allowed CIDRs
 │   ├── librenms.yaml        # Domain, DB/SNMP/admin credentials
-│   └── lancache.yaml        # Cache dir, size, upstream DNS
+│   ├── lancache.yaml        # Cache dir, size, upstream DNS
+│   └── mediamtx.yaml        # Ingest config, restream destinations, fallback
 ├── host_vars/
 │   └── <hostname>.yaml      # Per-host connection details
 └── roles/
@@ -193,7 +214,9 @@ lancache:
     ├── dhcp/                # Kea DHCP
     ├── ntp/                 # Chrony
     ├── librenms/            # LibreNMS stack
-    └── lancache/            # LANcache Docker stack
+    ├── docker/              # Docker CE (shared)
+    ├── lancache/            # LANcache Docker stack
+    └── mediamtx/            # MediaMTX streaming
 ```
 
 ## Tips

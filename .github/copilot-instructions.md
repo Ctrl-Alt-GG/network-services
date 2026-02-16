@@ -2,15 +2,16 @@
 
 ## Architecture Overview
 
-Ansible project deploying DDI (DNS, DHCP, NTP) + baseline hardening to **Rocky Linux (EL)** hosts. Two main playbooks:
+Ansible project deploying DDI (DNS, DHCP, NTP) + baseline hardening to **Rocky Linux (EL)** hosts. Main playbooks:
 
 - **ddi.yaml** — deploys all network services to `ddi-01`/`ddi-02` (roles: `base` → `users` → `dns` → `ntp`; DHCP via inventory group)
 - **sshjump.yaml** — deploys only `base` + `users` to the SSH jump host
 - **librenms.yaml** — deploys LibreNMS monitoring (roles: `base` → `users` → `librenms`) with Nginx, PHP-FPM, MariaDB, SNMP
-- **lancache.yaml** — deploys LANcache content caching proxy (roles: `base` → `users` → `lancache`) with Docker, monolithic cache + SNI proxy
+- **lancache.yaml** — deploys LANcache content caching proxy (roles: `base` → `users` → `docker` → `lancache`) with Docker, monolithic cache + SNI proxy
+- **mediamtx.yaml** — deploys MediaMTX streaming/restreaming server (roles: `base` → `users` → `docker` → `mediamtx`) for multi-platform streaming to Twitch/YouTube/Kick
 - **ansible-setup.yaml** — one-time bootstrap (interactive `vars_prompt`) to create an `ansible` user with SSH keys and passwordless sudo on a new machine
 
-Roles apply in dependency order: `base` (hardening, firewalld, SELinux, fail2ban, sysctl, auditd) → `users` (creates users from `group_vars/all.yaml` list with remote SSH key URLs) → service roles.
+Roles apply in dependency order: `base` (hardening, firewalld, SELinux, fail2ban, sysctl, auditd) → `users` (creates users from `group_vars/all.yaml` list with remote SSH key URLs) → `docker` (for container workloads) → service roles.
 
 ## Variable Hierarchy
 
@@ -24,6 +25,7 @@ Follow the existing layering strictly — don't flatten or duplicate variables a
 | NTP group | `group_vars/ntp.yaml` | `ntp_upstreams` (with `nts` flag), `ntp_allow` CIDRs |
 | LibreNMS group | `group_vars/librenms.yaml` | `librenms_domain`, `librenms_db_password`, `librenms_snmp_community`, admin credentials |
 | LANcache group | `group_vars/lancache.yaml` | `lancache_cache_dir`, `lancache_cache_disk_size`, `lancache_upstream_dns` |
+| MediaMTX group | `group_vars/mediamtx.yaml` | `mediamtx_ingest` (path, stream_key), `mediamtx_restream_destinations`, `mediamtx_fallback` |
 | Per-host | `host_vars/<host>.yaml` | `ansible_host`, `ansible_user`, `ansible_ssh_private_key_file` |
 | Role defaults | `roles/<role>/defaults/main.yaml` | Lowest-priority defaults (e.g., `timezone`, `cache_domains_repo`) |
 
@@ -46,6 +48,8 @@ Follow the existing layering strictly — don't flatten or duplicate variables a
 - **Users role**: Fetches SSH public keys from remote URLs (`ssh_key_url`). The `users` list in `group_vars/all.yaml` applies to all hosts.
 - **LibreNMS**: Full-stack monitoring deployment (Nginx + PHP-FPM + MariaDB + SNMP). Uses Remi repo for PHP on Rocky 9/10. APP_KEY is auto-generated on first run and preserved across subsequent deploys. Scheduler uses systemd timer + cron from upstream `dist/` files. Requires `community.mysql` collection.
 - **LANcache**: Docker-based content caching proxy using `lancachenet/monolithic` (HTTP cache) and `lancachenet/sniproxy` (HTTPS passthrough). Deployed via Docker Compose. Works in tandem with the DNS role's `lancache.enabled` setting which redirects game CDN domains to the cache IP. Requires `community.docker` collection.
+- **MediaMTX**: Docker-based RTMP/RTSP/HLS streaming server for multi-platform restreaming. Accepts a single authenticated ingest stream and forwards to Twitch, YouTube, Kick simultaneously. Supports fallback video playback when no live stream is active. Requires `community.docker` collection.
+- **Docker role**: Shared role for Docker CE installation used by `lancache` and `mediamtx`. Installs Docker CE, docker-compose-plugin, configures daemon.json, and adds audit rules.
 
 ## Running Playbooks
 
@@ -64,6 +68,9 @@ ansible-playbook librenms.yaml
 
 # Deploy LANcache content caching
 ansible-playbook lancache.yaml
+
+# Deploy MediaMTX streaming server
+ansible-playbook mediamtx.yaml
 
 # Bootstrap a new machine (interactive prompts)
 ansible-playbook ansible-setup.yaml
