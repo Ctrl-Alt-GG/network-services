@@ -41,4 +41,3 @@ mediamtx_restream_destinations:
 # HLS preview (view stream at http://<server>:8888/live)
 # mediamtx_hls_enabled: true
 ...
-
