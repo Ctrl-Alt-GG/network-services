@@ -34,6 +34,8 @@
     path: /etc/audit/rules.d/ntp.rules
     create: true
     mode: '0640'
+    owner: root
+    group: root
     block: |
       # NTP configuration monitoring
       -w /etc/chrony.conf -p wa -k ntp_config

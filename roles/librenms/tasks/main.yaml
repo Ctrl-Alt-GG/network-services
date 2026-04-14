@@ -101,15 +101,22 @@
   register: lib_git_stat
 
 - name: Delete non-git existing directory
-  ansible.builtin.command:
-    cmd: rm -rf "{{ librenms_install_dir }}"
+  ansible.builtin.file:
+    path: "{{ librenms_install_dir }}"
+    state: absent
   when: librenms_install_dir_stat.stat.exists and not lib_git_stat.stat.exists
-  args:
-    removes: "{{ librenms_install_dir }}"
+
+- name: Read current git safe.directory entries
+  ansible.builtin.command:
+    cmd: "git config --global --get-all safe.directory"
+  register: _git_safe_dirs
+  changed_when: false
+  failed_when: _git_safe_dirs.rc not in [0, 1, 5]
 
 - name: Configure git safe.directory for librenms
   ansible.builtin.command:
     cmd: "git config --global --add safe.directory {{ librenms_install_dir }}"
+  when: librenms_install_dir not in (_git_safe_dirs.stdout_lines | default([]))
 
 - name: Clone librenms if not present
   ansible.builtin.git:
@@ -117,7 +124,7 @@
     dest: "{{ librenms_install_dir }}"
     version: "{{ librenms_branch }}"
     depth: 1
-    accept_hostkey: yes
+    accept_hostkey: true
   register: librenms_clone
   when: not librenms_install_dir_stat.stat.exists or (librenms_install_dir_stat.stat.exists and not lib_git_stat.stat.exists)
 
@@ -127,9 +134,9 @@
     dest: "{{ librenms_install_dir }}"
     version: "{{ librenms_branch }}"
     depth: 1
-    update: yes
-    force: yes
-    accept_hostkey: yes
+    update: true
+    force: true
+    accept_hostkey: true
   register: librenms_clone
   when: librenms_install_dir_stat.stat.exists and lib_git_stat.stat.exists
 
@@ -408,7 +415,7 @@
 
 # --- SELinux ---
 - name: Install SELinux management packages
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name:
       - policycoreutils-python-utils
       - selinux-policy-devel
@@ -463,6 +470,8 @@
     path: /etc/audit/rules.d/librenms.rules
     create: true
     mode: '0640'
+    owner: root
+    group: root
     block: |
       -w {{ librenms_install_dir }}/.env -p wa -k librenms_config
       -w /etc/nginx/conf.d/librenms.conf -p wa -k librenms_nginx

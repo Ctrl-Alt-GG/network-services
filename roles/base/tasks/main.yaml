@@ -26,11 +26,11 @@
       line: 'PermitEmptyPasswords no'
     - regexp: '^#?PasswordAuthentication'
       line: 'PasswordAuthentication no'
-    - regexp: '#AddressFamily any'
+    - regexp: '^#?AddressFamily'
       line: 'AddressFamily inet'
-    - regexp: 'X11Forwarding yes'
+    - regexp: '^#?X11Forwarding'
       line: 'X11Forwarding no'
-    - regexp: '#PermitRootLogin prohibit-password'
+    - regexp: '^#?PermitRootLogin'
       line: 'PermitRootLogin no'
   notify: Restart sshd
 
@@ -178,7 +178,6 @@
       - traceroute
       - mtr
       - tmux
-      - htop
       - iperf3
     state: present
 ...
