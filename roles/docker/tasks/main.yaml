@@ -36,7 +36,7 @@
     state: started
 
 # --- Firewall ---
-- name: Allow Docker swarm management through firewall
+- name: Ensure Docker swarm management port is not exposed
   ansible.posix.firewalld:
     port: 2377/tcp
     state: disabled

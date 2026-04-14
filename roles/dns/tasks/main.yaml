@@ -76,7 +76,7 @@
 
 # --- LANcache Integration ---
 - name: Install Git
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name: git
     state: present
   when: lancache.enabled | default(false)
@@ -132,7 +132,7 @@
 
 # --- SELinux ---
 - name: Install required SELinux packages
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name:
       - selinux-policy-targeted
       - policycoreutils-python-utils
@@ -153,6 +153,8 @@
     path: /etc/audit/rules.d/dns.rules
     create: true
     mode: '0640'
+    owner: root
+    group: root
     block: |
       -w /etc/unbound/ -p wa -k dns_config
       -w /var/lib/unbound/ -p wa -k dns_data

@@ -1,7 +1,7 @@
 ---
 - name: Prepare Rocky 10 machine for Ansible automation
   hosts: "{{ target_host }}"
-  become: yes
+  become: true
 
   vars_prompt:
     - name: "target_host"
@@ -40,8 +40,8 @@
         group: "{{ automation_group }}"
         home: "{{ automation_home }}"
         shell: /bin/bash
-        create_home: yes
-        system: no
+        create_home: true
+        system: false
         state: present
 
     - name: Set up SSH directory for ansible user
@@ -69,6 +69,8 @@
         owner: "{{ automation_user }}"
         group: "{{ automation_group }}"
         mode: '0600'
+        modification_time: preserve
+        access_time: preserve
 
     - name: Add public key to authorized_keys (self-authorization)
       ansible.posix.authorized_key:
@@ -80,8 +82,9 @@
     - name: Configure passwordless sudo for ansible user
       ansible.builtin.lineinfile:
         path: /etc/sudoers.d/ansible
+        regexp: '^{{ automation_user }}\s'
         line: "{{ automation_user }} ALL=(ALL) NOPASSWD: ALL"
-        create: yes
+        create: true
         mode: '0440'
         owner: root
         group: root
@@ -89,4 +92,5 @@
 
     - name: Disable password login only for ansible user
       ansible.builtin.command: "passwd -l {{ automation_user }}"
+      changed_when: false
 ...
