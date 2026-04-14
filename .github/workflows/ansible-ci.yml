@@ -11,6 +11,9 @@ env:
   ANSIBLE_FORCE_COLOR: "1"
   PY_COLORS: "1"
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint

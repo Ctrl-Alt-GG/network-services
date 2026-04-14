@@ -28,14 +28,15 @@
       failed_when: not stat_result.stat.exists
 
     - name: Check authorized_keys is not empty
-      ansible.builtin.command: wc -c /home/testuser/.ssh/authorized_keys
-      changed_when: false
-      register: wc_result
-      failed_when: (wc_result.stdout.split()[0] | int) == 0
+      ansible.builtin.stat:
+        path: /home/testuser/.ssh/authorized_keys
+      register: keys_stat
+      failed_when: keys_stat.stat.size == 0
 
     - name: Check testuser is in wheel group
-      ansible.builtin.command: groups testuser
-      changed_when: false
-      register: groups_result
-      failed_when: "'wheel' not in groups_result.stdout"
+      ansible.builtin.getent:
+        database: group
+        key: wheel
+      register: wheel_group
+      failed_when: "'testuser' not in (wheel_group.ansible_facts.getent_group['wheel'][2] | default('') | split(','))"
 ...

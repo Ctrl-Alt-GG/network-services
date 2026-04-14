@@ -33,7 +33,7 @@
     chdir: "{{ librenms_install_dir }}"
   become: true
   become_user: "{{ librenms_user }}"
-  changed_when: true
+  changed_when: false
 
 - name: Restorecon librenms
   ansible.builtin.command: "restorecon -Rv {{ librenms_install_dir }}"
