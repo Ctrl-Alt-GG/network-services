@@ -16,6 +16,8 @@ platforms:
     command: /usr/sbin/init
 provisioner:
   name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: "../../../"
   inventory:
     host_vars:
       instance:
