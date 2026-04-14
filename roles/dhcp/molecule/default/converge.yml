@@ -1,0 +1,16 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    interfaces:
+      - eth0
+    subnets:
+      - "192.168.100.0/24"
+    dns_servers:
+      - "9.9.9.9"
+    ntp_servers:
+      - "pool.ntp.org"
+  roles:
+    - role: dhcp
+...

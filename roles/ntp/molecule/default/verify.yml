@@ -1,0 +1,74 @@
+---
+- name: Verify ntp role
+  hosts: all
+  become: true
+  tasks:
+    # --- Package checks ---
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert chrony is installed
+      ansible.builtin.assert:
+        that: "'chrony' in ansible_facts.packages"
+        fail_msg: "chrony is not installed"
+
+    # --- chrony.conf ---
+    - name: Check chrony.conf exists
+      ansible.builtin.stat:
+        path: /etc/chrony.conf
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check chrony.conf contains pool.ntp.org server entry
+      ansible.builtin.command: grep "pool.ntp.org" /etc/chrony.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check chrony.conf contains time.cloudflare.com with NTS flag
+      ansible.builtin.command: grep "time.cloudflare.com.*nts" /etc/chrony.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check chrony.conf allows the test network
+      ansible.builtin.command: grep "allow 192.168.0.0/16" /etc/chrony.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check chrony.conf has restricted cmdport
+      ansible.builtin.command: grep "^cmdport 0" /etc/chrony.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check chrony.conf has drift file configured
+      ansible.builtin.command: grep "driftfile" /etc/chrony.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- Audit rules ---
+    - name: Check NTP audit rules file exists
+      ansible.builtin.stat:
+        path: /etc/audit/rules.d/ntp.rules
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check NTP audit rules monitor chrony.conf
+      ansible.builtin.command: grep "ntp_config" /etc/audit/rules.d/ntp.rules
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- Service state ---
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert chronyd is enabled
+      ansible.builtin.assert:
+        that: ansible_facts.services['chronyd.service'].status == 'enabled'
+        fail_msg: "chronyd service is not enabled"
+...

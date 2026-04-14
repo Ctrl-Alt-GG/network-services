@@ -1,0 +1,21 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    upstreams:
+      - "9.9.9.9"
+      - "149.112.112.112"
+    lancache:
+      enabled: false
+      ipaddrs: []
+    private_zones:
+      - name: test.lab
+        records:
+          - "server.test.lab.  IN A 192.168.1.10"
+        reverse_zone: 1.168.192.in-addr.arpa
+        ptr_records:
+          - "10.1.168.192.in-addr.arpa.  IN PTR server.test.lab."
+  roles:
+    - role: dns
+...

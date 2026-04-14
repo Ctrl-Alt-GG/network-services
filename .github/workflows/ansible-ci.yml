@@ -7,29 +7,105 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  ANSIBLE_FORCE_COLOR: "1"
+  PY_COLORS: "1"
+
 jobs:
-  yamllint:
-    name: YAML Lint
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lint tools
+        run: pip install yamllint ansible ansible-lint
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install -r requirements.yaml
 
       - name: Run yamllint
-        uses: ansible-actions/yamllint-action@v0.0.2
-        with:
-          target: "./"
+        run: yamllint .
 
-  ansible-lint:
-    name: Ansible Lint
+      - name: Run ansible-lint
+        run: ansible-lint
+
+  syntax-check:
+    name: Syntax Check
     runs-on: ubuntu-latest
+    needs: lint
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run ansible-lint
-        uses: ansible-actions/ansible-lint-action@v1.0.3
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          target: "./"
-          collections_yml: "requirements.yaml"
+          python-version: "3.12"
+
+      - name: Install Ansible
+        run: pip install ansible netaddr
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install -r requirements.yaml
+
+      - name: Syntax check — ddi.yaml
+        run: ansible-playbook ddi.yaml --syntax-check
+
+      - name: Syntax check — sshjump.yaml
+        run: ansible-playbook sshjump.yaml --syntax-check
+
+      - name: Syntax check — librenms.yaml
+        run: ansible-playbook librenms.yaml --syntax-check
+
+      - name: Syntax check — lancache.yaml
+        run: ansible-playbook lancache.yaml --syntax-check
+
+      - name: Syntax check — mediamtx.yaml
+        run: ansible-playbook mediamtx.yaml --syntax-check
+
+  molecule:
+    name: "Molecule | ${{ matrix.role }} | ${{ matrix.distro.name }}"
+    runs-on: ubuntu-latest
+    needs: syntax-check
+    strategy:
+      matrix:
+        role:
+          - base
+          - users
+          - dns
+          - ntp
+          - dhcp
+        distro:
+          - name: rocky9
+            image: geerlingguy/docker-rockylinux9-ansible:latest
+          - name: rocky10
+            image: geerlingguy/docker-rockylinux10-ansible:latest
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Molecule and dependencies
+        run: pip install ansible "molecule-plugins[docker]" docker netaddr
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install -r requirements.yaml
+
+      - name: Run Molecule tests
+        run: molecule test
+        working-directory: roles/${{ matrix.role }}
+        env:
+          MOLECULE_IMAGE: ${{ matrix.distro.image }}
 ...

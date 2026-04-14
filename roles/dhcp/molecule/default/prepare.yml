@@ -1,0 +1,24 @@
+---
+# Install EPEL (provides kea) and start firewalld before the dhcp role runs.
+# The base role would normally handle both in a full DDI deployment.
+- name: Prepare
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install EPEL
+      ansible.builtin.package:
+        name: epel-release
+        state: present
+
+    - name: Install firewalld
+      ansible.builtin.package:
+        name: firewalld
+        state: present
+
+    - name: Enable and start firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: true
+...

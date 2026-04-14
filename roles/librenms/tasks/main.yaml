@@ -12,7 +12,7 @@
   register: php_module_reset
   changed_when: "'Nothing to do' not in php_module_reset.stdout"
 
-- name: Enable PHP {{ librenms_php_version }} from Remi
+- name: Enable PHP from Remi ({{ librenms_php_version }})
   ansible.builtin.command:
     cmd: "dnf module enable php:remi-{{ librenms_php_version }} -y"
   register: php_module_enable
@@ -108,8 +108,11 @@
     removes: "{{ librenms_install_dir }}"
 
 - name: Configure git safe.directory for librenms
-  ansible.builtin.command:
-    cmd: "git config --global --add safe.directory {{ librenms_install_dir }}"
+  community.general.git_config:
+    name: safe.directory
+    scope: global
+    value: "{{ librenms_install_dir }}"
+    state: present
 
 - name: Clone librenms if not present
   ansible.builtin.git:
@@ -232,7 +235,7 @@
 
 - name: Read existing APP_KEY
   ansible.builtin.shell:
-    cmd: "grep '^APP_KEY=' {{ librenms_install_dir }}/.env | cut -d= -f2-"
+    cmd: "set -o pipefail && grep '^APP_KEY=' {{ librenms_install_dir }}/.env | cut -d= -f2-"
     executable: /bin/bash
   register: existing_app_key
   when: env_file_stat.stat.exists
@@ -248,7 +251,7 @@
     mode: '0640'
   vars:
     _app_key: "{{ existing_app_key.stdout | default('') }}"
-  register: librenms_env_template
+  notify: Clear Laravel caches
 
 - name: Generate APP_KEY if not set
   ansible.builtin.command:
@@ -257,14 +260,7 @@
   become: true
   become_user: "{{ librenms_user }}"
   when: (existing_app_key.stdout | default('')) | length == 0
-
-- name: Clear Laravel optimized caches after .env change
-  ansible.builtin.command:
-    cmd: php artisan optimize:clear
-    chdir: "{{ librenms_install_dir }}"
-  become: true
-  become_user: "{{ librenms_user }}"
-  when: librenms_env_template.changed
+  changed_when: true
 
 - name: Run database migrations
   ansible.builtin.command:

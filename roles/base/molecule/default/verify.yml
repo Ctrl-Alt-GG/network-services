@@ -1,0 +1,116 @@
+---
+- name: Verify base role
+  hosts: all
+  become: true
+  tasks:
+    # --- Package checks ---
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert openssh-server is installed
+      ansible.builtin.assert:
+        that: "'openssh-server' in ansible_facts.packages"
+        fail_msg: "openssh-server is not installed"
+
+    - name: Assert audit is installed
+      ansible.builtin.assert:
+        that: "'audit' in ansible_facts.packages"
+        fail_msg: "audit is not installed"
+
+    - name: Assert firewalld is installed
+      ansible.builtin.assert:
+        that: "'firewalld' in ansible_facts.packages"
+        fail_msg: "firewalld is not installed"
+
+    - name: Assert fail2ban is installed
+      ansible.builtin.assert:
+        that: "'fail2ban' in ansible_facts.packages"
+        fail_msg: "fail2ban is not installed"
+
+    - name: Assert epel-release is installed
+      ansible.builtin.assert:
+        that: "'epel-release' in ansible_facts.packages"
+        fail_msg: "epel-release is not installed"
+
+    # --- SSH hardening ---
+    - name: Check PasswordAuthentication is disabled in sshd_config
+      ansible.builtin.command: grep -P '^PasswordAuthentication\s+no' /etc/ssh/sshd_config
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check PermitRootLogin is disabled in sshd_config
+      ansible.builtin.command: grep -P '^PermitRootLogin\s+no' /etc/ssh/sshd_config
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check PermitEmptyPasswords is disabled in sshd_config
+      ansible.builtin.command: grep -P '^PermitEmptyPasswords\s+no' /etc/ssh/sshd_config
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check MaxAuthTries is set in sshd_config
+      ansible.builtin.command: grep -P '^MaxAuthTries\s+3' /etc/ssh/sshd_config
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- Audit ---
+    - name: Check audit rules file exists
+      ansible.builtin.stat:
+        path: /etc/audit/rules.d/network-services.rules
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check audit rules contain network socket monitoring
+      ansible.builtin.command: grep "network_socket_create" /etc/audit/rules.d/network-services.rules
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check audit rules contain ssh_config monitoring
+      ansible.builtin.command: grep "ssh_config" /etc/audit/rules.d/network-services.rules
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- fail2ban ---
+    - name: Check fail2ban jail.local exists
+      ansible.builtin.stat:
+        path: /etc/fail2ban/jail.local
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check fail2ban jail.local has systemd backend
+      ansible.builtin.command: grep "backend = systemd" /etc/fail2ban/jail.local
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- Service state ---
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert sshd is enabled
+      ansible.builtin.assert:
+        that: ansible_facts.services['sshd.service'].status == 'enabled'
+        fail_msg: "sshd service is not enabled"
+
+    - name: Assert firewalld is enabled
+      ansible.builtin.assert:
+        that: ansible_facts.services['firewalld.service'].status == 'enabled'
+        fail_msg: "firewalld service is not enabled"
+
+    - name: Assert auditd is enabled
+      ansible.builtin.assert:
+        that: ansible_facts.services['auditd.service'].status == 'enabled'
+        fail_msg: "auditd service is not enabled"
+
+    - name: Assert fail2ban is enabled
+      ansible.builtin.assert:
+        that: ansible_facts.services['fail2ban.service'].status == 'enabled'
+        fail_msg: "fail2ban service is not enabled"
+...

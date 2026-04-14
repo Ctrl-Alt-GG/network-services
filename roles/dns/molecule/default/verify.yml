@@ -1,0 +1,101 @@
+---
+- name: Verify dns role
+  hosts: all
+  become: true
+  tasks:
+    # --- Package checks ---
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert unbound is installed
+      ansible.builtin.assert:
+        that: "'unbound' in ansible_facts.packages"
+        fail_msg: "unbound is not installed"
+
+    # --- Configuration directories ---
+    - name: Check unbound config directories exist
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: dir_stat
+      failed_when: not dir_stat.stat.isdir
+      loop:
+        - /etc/unbound
+        - /etc/unbound/conf.d
+        - /etc/unbound/zones.d
+        - /etc/unbound/lancache.d
+        - /var/lib/unbound
+
+    # --- unbound.conf ---
+    - name: Check unbound.conf exists
+      ansible.builtin.stat:
+        path: /etc/unbound/unbound.conf
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check unbound.conf contains upstream forwarder 9.9.9.9
+      ansible.builtin.command: 'grep "forward-addr: 9.9.9.9" /etc/unbound/unbound.conf'
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check unbound.conf contains upstream forwarder 149.112.112.112
+      ansible.builtin.command: 'grep "forward-addr: 149.112.112.112" /etc/unbound/unbound.conf'
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check unbound.conf has DNSSEC hardening enabled
+      ansible.builtin.command: 'grep "harden-dnssec-stripped: yes" /etc/unbound/unbound.conf'
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check unbound.conf has qname-minimisation enabled
+      ansible.builtin.command: 'grep "qname-minimisation: yes" /etc/unbound/unbound.conf'
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- Private zone ---
+    - name: Check private zone config was deployed
+      ansible.builtin.stat:
+        path: /etc/unbound/zones.d/test.lab.conf
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check zone config contains the A record
+      ansible.builtin.command: grep "192.168.1.10" /etc/unbound/zones.d/test.lab.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- DNSSEC root key ---
+    - name: Check DNSSEC root trust anchor exists
+      ansible.builtin.stat:
+        path: /var/lib/unbound/root.key
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    # --- Audit rules ---
+    - name: Check DNS audit rules file exists
+      ansible.builtin.stat:
+        path: /etc/audit/rules.d/dns.rules
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check DNS audit rules monitor unbound config
+      ansible.builtin.command: grep "dns_config" /etc/audit/rules.d/dns.rules
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- Service state ---
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert unbound is enabled
+      ansible.builtin.assert:
+        that: ansible_facts.services['unbound.service'].status == 'enabled'
+        fail_msg: "unbound service is not enabled"
+...

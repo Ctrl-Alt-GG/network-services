@@ -1,0 +1,19 @@
+---
+# Install and start firewalld before the dns role runs its firewall tasks.
+# The base role would normally handle this in a full DDI deployment.
+- name: Prepare
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install firewalld
+      ansible.builtin.package:
+        name: firewalld
+        state: present
+
+    - name: Enable and start firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: true
+...

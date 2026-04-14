@@ -89,4 +89,5 @@
 
     - name: Disable password login only for ansible user
       ansible.builtin.command: "passwd -l {{ automation_user }}"
+      changed_when: false
 ...

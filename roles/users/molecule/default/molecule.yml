@@ -1,0 +1,25 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../../../../requirements.yaml
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: "{{ lookup('env', 'MOLECULE_IMAGE') | default('geerlingguy/docker-rockylinux9-ansible:latest', true) }}"
+    pre_build_image: true
+    privileged: true
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    command: /usr/sbin/init
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      instance:
+        ansible_python_interpreter: /usr/bin/python3
+verifier:
+  name: ansible
+...

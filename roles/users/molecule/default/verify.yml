@@ -1,0 +1,41 @@
+---
+- name: Verify users role
+  hosts: all
+  become: true
+  tasks:
+    - name: Gather user facts
+      ansible.builtin.getent:
+        database: passwd
+        key: testuser
+      register: user_entry
+      failed_when: user_entry.failed
+
+    - name: Assert testuser exists in passwd
+      ansible.builtin.assert:
+        that: user_entry.ansible_facts.getent_passwd['testuser'] is defined
+        fail_msg: "testuser not found in /etc/passwd"
+
+    - name: Check testuser home directory was created
+      ansible.builtin.stat:
+        path: /home/testuser
+      register: stat_result
+      failed_when: not stat_result.stat.isdir
+
+    - name: Check testuser authorized_keys file exists
+      ansible.builtin.stat:
+        path: /home/testuser/.ssh/authorized_keys
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check authorized_keys is not empty
+      ansible.builtin.command: wc -c /home/testuser/.ssh/authorized_keys
+      changed_when: false
+      register: wc_result
+      failed_when: (wc_result.stdout.split()[0] | int) == 0
+
+    - name: Check testuser is in wheel group
+      ansible.builtin.command: groups testuser
+      changed_when: false
+      register: groups_result
+      failed_when: "'wheel' not in groups_result.stdout"
+...

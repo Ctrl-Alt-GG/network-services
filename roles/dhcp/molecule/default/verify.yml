@@ -1,0 +1,112 @@
+---
+- name: Verify dhcp role
+  hosts: all
+  become: true
+  tasks:
+    # --- Package checks ---
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Assert kea is installed (check for kea-dhcp4)
+      ansible.builtin.assert:
+        that: "'kea-dhcp4' in ansible_facts.packages or 'kea' in ansible_facts.packages"
+        fail_msg: "kea-dhcp4 package is not installed"
+
+    # --- Kea config directory ---
+    - name: Check /etc/kea directory exists
+      ansible.builtin.stat:
+        path: /etc/kea
+      register: stat_result
+      failed_when: not stat_result.stat.isdir
+
+    # --- kea-dhcp4.conf ---
+    - name: Check kea-dhcp4.conf exists
+      ansible.builtin.stat:
+        path: /etc/kea/kea-dhcp4.conf
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check kea-dhcp4.conf contains the test subnet
+      ansible.builtin.command: grep "192.168.100.0/24" /etc/kea/kea-dhcp4.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check kea-dhcp4.conf contains the test interface
+      ansible.builtin.command: grep "eth0" /etc/kea/kea-dhcp4.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check kea-dhcp4.conf contains the DNS server
+      ansible.builtin.command: grep "9.9.9.9" /etc/kea/kea-dhcp4.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    - name: Check kea-dhcp4.conf has a valid pool (auto-derived from CIDR)
+      ansible.builtin.command: grep "192.168.100.1" /etc/kea/kea-dhcp4.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- kea-ctrl-agent.conf ---
+    - name: Check kea-ctrl-agent.conf exists
+      ansible.builtin.stat:
+        path: /etc/kea/kea-ctrl-agent.conf
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check kea-ctrl-agent.conf binds to localhost only
+      ansible.builtin.command: grep "127.0.0.1" /etc/kea/kea-ctrl-agent.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- Systemd security override ---
+    - name: Check systemd security override directory exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/kea-dhcp4.service.d
+      register: stat_result
+      failed_when: not stat_result.stat.isdir
+
+    - name: Check systemd security override file exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/kea-dhcp4.service.d/security.conf
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check security override has NoNewPrivileges
+      ansible.builtin.command: grep "NoNewPrivileges=true" /etc/systemd/system/kea-dhcp4.service.d/security.conf
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- Audit rules ---
+    - name: Check DHCP audit rules file exists
+      ansible.builtin.stat:
+        path: /etc/audit/rules.d/dhcp.rules
+      register: stat_result
+      failed_when: not stat_result.stat.exists
+
+    - name: Check DHCP audit rules monitor kea config
+      ansible.builtin.command: grep "dhcp_config" /etc/audit/rules.d/dhcp.rules
+      changed_when: false
+      register: result
+      failed_when: result.rc != 0
+
+    # --- Service state ---
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert kea-dhcp4 is enabled
+      ansible.builtin.assert:
+        that: ansible_facts.services['kea-dhcp4.service'].status == 'enabled'
+        fail_msg: "kea-dhcp4 service is not enabled"
+
+    - name: Assert kea-ctrl-agent is enabled
+      ansible.builtin.assert:
+        that: ansible_facts.services['kea-ctrl-agent.service'].status == 'enabled'
+        fail_msg: "kea-ctrl-agent service is not enabled"
+...

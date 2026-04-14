@@ -1,0 +1,17 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    ntp_upstreams:
+      - type: server
+        host: pool.ntp.org
+        nts: false
+      - type: server
+        host: time.cloudflare.com
+        nts: true
+    ntp_allow:
+      - "192.168.0.0/16"
+  roles:
+    - role: ntp
+...
