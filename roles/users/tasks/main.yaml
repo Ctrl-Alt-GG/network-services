@@ -11,8 +11,8 @@
     name: "{{ item.name }}"
     shell: "{{ item.shell | default('/bin/bash') }}"
     groups: "{{ item.groups | default(['wheel']) }}"
-    append: yes
-    create_home: yes
+    append: true
+    create_home: true
     state: present
   loop: "{{ users }}"
 
