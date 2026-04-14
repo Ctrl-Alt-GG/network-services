@@ -106,10 +106,17 @@
     state: absent
   when: librenms_install_dir_stat.stat.exists and not lib_git_stat.stat.exists
 
+- name: Read current git safe.directory entries
+  ansible.builtin.command:
+    cmd: "git config --global --get-all safe.directory"
+  register: _git_safe_dirs
+  changed_when: false
+  failed_when: _git_safe_dirs.rc not in [0, 1, 5]
+
 - name: Configure git safe.directory for librenms
   ansible.builtin.command:
     cmd: "git config --global --add safe.directory {{ librenms_install_dir }}"
-  changed_when: false
+  when: librenms_install_dir not in (_git_safe_dirs.stdout_lines | default([]))
 
 - name: Clone librenms if not present
   ansible.builtin.git:

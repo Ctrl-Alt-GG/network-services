@@ -69,6 +69,7 @@
         owner: "{{ automation_user }}"
         group: "{{ automation_group }}"
         mode: '0600'
+        # Preserve timestamps so subsequent runs do not report spurious changes
         modification_time: preserve
         access_time: preserve
 
@@ -91,6 +92,7 @@
         validate: 'visudo -cf %s'
 
     - name: Disable password login only for ansible user
-      ansible.builtin.command: "passwd -l {{ automation_user }}"
-      changed_when: false
+      ansible.builtin.user:
+        name: "{{ automation_user }}"
+        password_lock: true
 ...
