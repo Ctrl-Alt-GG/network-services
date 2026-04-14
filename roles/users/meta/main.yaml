@@ -1,6 +1,7 @@
 ---
 galaxy_info:
   author: Ctrl-Alt-GG
+  namespace: ctrl_alt_gg
   description: User creator role
   company: Ctrl-Alt-GG
   license: "All Rights Reserved"
