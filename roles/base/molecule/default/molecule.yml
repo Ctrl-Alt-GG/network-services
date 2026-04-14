@@ -7,7 +7,7 @@ driver:
   name: docker
 platforms:
   - name: instance
-    image: "{{ lookup('env', 'MOLECULE_IMAGE') | default('geerlingguy/docker-rockylinux9-ansible:latest', true) }}"
+    image: "geerlingguy/docker-rockylinux9-ansible:latest"
     pre_build_image: true
     privileged: true
     cgroupns_mode: host

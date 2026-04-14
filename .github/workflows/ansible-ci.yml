@@ -107,8 +107,8 @@ jobs:
         run: ansible-galaxy collection install -r requirements.yaml
 
       - name: Run Molecule tests
-        run: molecule test
+        run: |
+          sed -i "s|geerlingguy/docker-rockylinux9-ansible:latest|${{ matrix.distro.image }}|" molecule/default/molecule.yml
+          molecule test
         working-directory: roles/${{ matrix.role }}
-        env:
-          MOLECULE_IMAGE: ${{ matrix.distro.image }}
 ...
