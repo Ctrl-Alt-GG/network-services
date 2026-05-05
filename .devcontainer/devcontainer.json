@@ -1,0 +1,45 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+    "name": "network-services (Ansible)",
+    "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": true,
+            "configureZshAsDefaultShell": false,
+            "upgradePackages": true
+        },
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+
+    // Install Ansible, linters and the collections required by this project.
+    "postCreateCommand": "pip install --user --no-cache-dir ansible ansible-lint yamllint && ansible-galaxy collection install -r requirements.yaml",
+
+    "remoteUser": "vscode",
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "redhat.ansible",
+                "redhat.vscode-yaml",
+                "github.vscode-github-actions",
+                "ms-python.python",
+                "esbenp.prettier-vscode"
+            ],
+            "settings": {
+                "[ansible]": {
+                    "editor.tabSize": 2,
+                    "editor.insertSpaces": true
+                },
+                "[yaml]": {
+                    "editor.tabSize": 2,
+                    "editor.insertSpaces": true
+                },
+                "ansible.validation.lint.enabled": true,
+                "ansible.validation.lint.path": "ansible-lint"
+            }
+        }
+    }
+}
