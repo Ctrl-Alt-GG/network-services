@@ -16,11 +16,32 @@
     state: present
   loop: "{{ users }}"
 
+- name: Download SSH public keys
+  ansible.builtin.uri:
+    url: "{{ item.ssh_key_url }}"
+    return_content: true
+    status_code: 200
+    headers:
+      Accept: text/plain
+      User-Agent: ansible-network-services
+  loop: "{{ users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.ssh_key_url is defined
+  register: ssh_public_keys
+  delegate_to: localhost
+  become: false
+  changed_when: false
+
 - name: Add SSH public keys
   ansible.posix.authorized_key:
-    user: "{{ item.name }}"
-    key: "{{ item.ssh_key_url }}"
+    user: "{{ item.item.name }}"
+    key: "{{ item.content }}"
     state: present
-  loop: "{{ users }}"
-  when: item.ssh_key_url is defined
+  loop: "{{ ssh_public_keys.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - not (item.skipped | default(false))
+    - item.content is defined
 ...
