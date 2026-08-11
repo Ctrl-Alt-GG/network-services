@@ -1,3 +1,4 @@
+---
 cache_domains_repo: "https://github.com/uklans/cache-domains.git"
 cache_domains_branch: "master"
 lancache:
