@@ -41,6 +41,7 @@
   ansible.builtin.command: >
     unbound-control-setup -d /etc/unbound
   when: unbound_remote_control_files.results | selectattr('stat.exists', 'equalto', false) | list | length > 0
+  changed_when: true
   notify: Restart unbound
 
 - name: Ensure correct ownership and permissions of the trust anchor
