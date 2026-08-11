@@ -1,0 +1,51 @@
+# {{ansible_managed}}
+limit_req_zone $binary_remote_addr zone={{ reverse_proxy_site_name }}_api_limit:10m rate={{ reverse_proxy_api_rate_limit }};
+
+server {
+    listen 443 ssl http2;
+    server_name {{ reverse_proxy_domain }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ reverse_proxy_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ reverse_proxy_domain }}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+{% if reverse_proxy_enable_hsts %}
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+{% endif %}
+    add_header X-Content-Type-Options "nosniff" always;
+
+    location {{ reverse_proxy_api_path_prefix }} {
+{% if reverse_proxy_api_allowlist | length > 0 %}
+{% for ip in reverse_proxy_api_allowlist %}
+        allow {{ ip }};
+{% endfor %}
+        deny all;
+{% endif %}
+        limit_req zone={{ reverse_proxy_site_name }}_api_limit burst={{ reverse_proxy_api_rate_burst }} nodelay;
+
+        proxy_pass {{ reverse_proxy_backend_upstream }}/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass {{ reverse_proxy_frontend_upstream }}/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+server {
+    listen 80;
+    server_name {{ reverse_proxy_domain }};
+
+    return 301 https://$host$request_uri;
+}

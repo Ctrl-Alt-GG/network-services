@@ -1,0 +1,59 @@
+# {{ansible_managed}}
+services:
+  bracket-frontend:
+    image: {{ bracket_frontend_image }}
+    container_name: bracket-frontend
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: "production"
+      VITE_API_BASE_URL: "{{ bracket_api_base_url }}"
+      VITE_HCAPTCHA_SITE_KEY: "{{ bracket_hcaptcha_site_key }}"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        : "$${VITE_API_BASE_URL:?VITE_API_BASE_URL is required}"
+        find /app/dist -type f -name '*.js' -exec sed -i "s|http://localhost:8400|$${VITE_API_BASE_URL}|g" {} +
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    restart: unless-stopped
+
+  bracket-backend:
+    image: {{ bracket_backend_image }}
+    container_name: bracket-backend
+    ports:
+      - "127.0.0.1:8400:8400"
+    environment:
+      ENVIRONMENT: "PRODUCTION"
+      PG_DSN: "postgresql://{{ bracket_postgres_user }}:{{ bracket_postgres_password }}@postgres:5432/{{ bracket_postgres_db }}"
+      AUTO_RUN_MIGRATIONS: "true"
+      SERVE_FRONTEND: "false"
+      API_PREFIX: "/api"
+      CORS_ORIGINS: "{{ bracket_cors_origins }}"
+      JWT_SECRET: "{{ bracket_jwt_secret }}"
+      ALLOW_USER_REGISTRATION: "{{ bracket_allow_user_registration | lower }}"
+      ALLOW_INSECURE_HTTP_SSO: "false"
+      BASE_URL: "https://{{ bracket_domain }}/api"
+    volumes:
+      - {{ bracket_backend_static_dir }}:/app/static
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: {{ bracket_postgres_image }}
+    restart: always
+    environment:
+      POSTGRES_DB: "{{ bracket_postgres_db }}"
+      POSTGRES_USER: "{{ bracket_postgres_user }}"
+      POSTGRES_PASSWORD: "{{ bracket_postgres_password }}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ bracket_postgres_user }} -d {{ bracket_postgres_db }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    volumes:
+      - {{ bracket_postgres_data_dir }}:/var/lib/postgresql

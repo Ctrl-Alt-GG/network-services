@@ -1,0 +1,16 @@
+---
+reverse_proxy_domain: example.com
+# Reserved for compatibility; certificates are managed manually outside this role.
+reverse_proxy_certbot_email: ""
+reverse_proxy_site_name: app
+reverse_proxy_site_conf: "{{ reverse_proxy_site_name }}.conf"
+reverse_proxy_site_template: bracket-site.conf.j2
+reverse_proxy_frontend_upstream: http://127.0.0.1:3000
+reverse_proxy_backend_upstream: http://127.0.0.1:8400
+reverse_proxy_api_path_prefix: /api/
+reverse_proxy_api_rate_limit: 20r/s
+reverse_proxy_api_rate_burst: 40
+reverse_proxy_enable_hsts: true
+reverse_proxy_api_allowlist: []
+reverse_proxy_trusted_origins: []
+...

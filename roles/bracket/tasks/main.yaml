@@ -1,0 +1,82 @@
+---
+- name: Create Bracket directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ bracket_project_dir }}"
+    - "{{ bracket_backend_static_dir }}"
+    - "{{ bracket_postgres_data_dir }}"
+
+- name: Install SELinux management packages
+  ansible.builtin.package:
+    name:
+      - policycoreutils-python-utils
+      - selinux-policy-devel
+    state: present
+  when: ansible_selinux.status == 'enabled'
+
+- name: Set SELinux file contexts for Bracket paths
+  community.general.sefcontext:
+    target: "{{ bracket_project_dir }}(/.*)?"
+    setype: container_file_t
+    state: present
+  when: ansible_selinux.status == 'enabled'
+  notify: Restorecon bracket
+
+- name: Restore SELinux contexts for Bracket paths
+  ansible.builtin.command: "restorecon -Rv {{ bracket_project_dir }}"
+  changed_when: false
+  when: ansible_selinux.status == 'enabled'
+
+- name: Generate deterministic Bracket secrets
+  ansible.builtin.set_fact:
+    bracket_postgres_password: "{{ ((bracket_secret_seed ~ ':bracket:pg') | hash('sha256'))[0:32] }}"
+    bracket_jwt_secret: "{{ (bracket_secret_seed ~ ':bracket:jwt') | hash('sha256') }}"
+    bracket_admin_password: "{{ (((bracket_secret_seed ~ ':bracket:admin') | hash('sha256'))[0:20]) ~ 'Aa1!' }}"
+
+- name: Deploy Bracket docker-compose configuration
+  ansible.builtin.template:
+    src: docker-compose.yaml.j2
+    dest: "{{ bracket_project_dir }}/docker-compose.yaml"
+    owner: root
+    group: root
+    mode: '0640'
+  notify: Restart bracket
+
+- name: Start Bracket containers
+  community.docker.docker_compose_v2:
+    project_src: "{{ bracket_project_dir }}"
+    state: present
+    pull: missing
+
+- name: Configure reverse proxy for Bracket
+  ansible.builtin.include_role:
+    name: reverse_proxy
+  vars:
+    reverse_proxy_domain: "{{ bracket_domain }}"
+    reverse_proxy_certbot_email: "{{ bracket_certbot_email }}"
+    reverse_proxy_site_name: "{{ bracket_reverse_proxy_site_name }}"
+    reverse_proxy_site_conf: "{{ bracket_reverse_proxy_site_name }}.conf"
+    reverse_proxy_frontend_upstream: "http://127.0.0.1:3000"
+    reverse_proxy_backend_upstream: "http://127.0.0.1:8400"
+    reverse_proxy_api_path_prefix: /api/
+    reverse_proxy_api_rate_limit: "{{ bracket_api_rate_limit }}"
+    reverse_proxy_api_rate_burst: "{{ bracket_api_rate_burst }}"
+
+- name: Add Bracket audit rules
+  ansible.builtin.blockinfile:
+    path: /etc/audit/rules.d/bracket.rules
+    create: true
+    mode: '0640'
+    owner: root
+    group: root
+    block: |
+      -w {{ bracket_project_dir }}/docker-compose.yaml -p wa -k bracket_compose
+      -w {{ bracket_backend_static_dir }}/ -p wa -k bracket_static
+      -w {{ bracket_postgres_data_dir }}/ -p wa -k bracket_postgres
+  notify: Restart auditd
+...

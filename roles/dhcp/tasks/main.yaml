@@ -37,6 +37,7 @@
     owner: root
     group: kea
     mode: '0640'
+    validate: kea-dhcp4 -t %s
     backup: true
   notify: Restart kea-dhcp4
 
@@ -83,7 +84,7 @@
       ProtectKernelTunables=true
       ProtectKernelModules=true
       ProtectControlGroups=true
-      ReadWritePaths=/var/log/kea /var/lib/kea
+      ReadWritePaths=/var/log/kea /var/lib/kea /run/kea /var/run/kea
       PrivateDevices=true
       MemoryDenyWriteExecute=true
   notify:

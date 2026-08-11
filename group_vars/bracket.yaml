@@ -1,0 +1,16 @@
+---
+bracket_domain: bracket.ctrl-alt-gg.hu
+bracket_api_base_url: "https://{{ bracket_domain }}/api"
+bracket_cors_origins: "https://{{ bracket_domain }}"
+
+# Reserved for compatibility; certificates are managed manually outside these playbooks.
+bracket_certbot_email: "iam@tormakristof.eu"
+
+# hCaptcha is optional in Bracket. Keep empty to disable.
+bracket_hcaptcha_site_key: ""
+
+# Bracket registration toggle. Keep this disabled when users are provisioned via Ansible.
+bracket_allow_user_registration: true
+
+...
+

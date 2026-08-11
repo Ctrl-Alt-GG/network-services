@@ -3,26 +3,25 @@ all:
   children:
     other:
       hosts:
-        # sshjump:
+        sshjump:
+        sshjump-2:
     dhcp:
       hosts:
-        # ddi-01:
-        ddi-02:
+        ddi-01:
     dns:
       hosts:
-        # ddi-01:
+        ddi-01:
         ddi-02:
+        ddi-03:
     ntp:
       hosts:
-        # ddi-01:
+        ddi-01:
         ddi-02:
-    librenms:
+        ddi-03:
+    bracket:
       hosts:
-        # librenms-01:
-    lancache:
-      hosts:
-        # lancache-01:
+        bracket:
     mediamtx:
       hosts:
-        # mediamtx-01:
+        mediamtx:
 ...

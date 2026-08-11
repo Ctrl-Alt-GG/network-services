@@ -16,7 +16,7 @@
   loop:
     - /etc/unbound
     - /etc/unbound/conf.d
-    - /etc/unbound/zones.d
+    - /etc/unbound/auth.d
     - /etc/unbound/lancache.d
     - /var/lib/unbound
 
@@ -51,6 +51,16 @@
     mode: '0640'
     state: file
 
+- name: Generate reverse-zone transparent overrides
+  ansible.builtin.template:
+    src: 00-local-zones.conf.j2
+    dest: /etc/unbound/auth.d/00-local-zones.conf
+    owner: root
+    group: unbound
+    mode: '0640'
+    validate: 'unbound-checkconf %s'
+  notify: Reload unbound
+
 - name: Deploy unbound.conf
   ansible.builtin.template:
     src: unbound.conf.j2
@@ -59,35 +69,6 @@
     group: root
     mode: '0644'
     validate: 'unbound-checkconf %s'
-  notify: Restart unbound
-
-# --- Private Zones ---
-- name: Deploy private zone configurations
-  ansible.builtin.template:
-    src: unbound-zone.conf.j2
-    dest: "/etc/unbound/zones.d/{{ zone.name }}.conf"
-    owner: root
-    group: unbound
-    mode: '0640'
-    validate: 'unbound-checkconf %s'
-  loop: "{{ private_zones | default([]) }}"
-  loop_control:
-    loop_var: zone
-  notify: Restart unbound
-  when: private_zones | default([]) | length > 0
-
-- name: List deployed zone files
-  ansible.builtin.find:
-    paths: /etc/unbound/zones.d
-    patterns: '*.conf'
-  register: deployed_zone_files
-
-- name: Remove stale zone files
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: absent
-  loop: "{{ deployed_zone_files.files }}"
-  when: (item.path | basename | regex_replace('\\.conf$', '')) not in (private_zones | default([]) | map(attribute='name') | list)
   notify: Restart unbound
 
 # --- LANcache Integration ---

@@ -1,19 +1,15 @@
 # {{ansible_managed}}
 services:
   mediamtx:
-    image: {{ mediamtx_image }}
-    container_name: mediamtx
+    image: {{ mediamtx_compose_image }}
     restart: unless-stopped
-    network_mode: host
     volumes:
-      - {{ mediamtx_config_dir }}/mediamtx.yaml:/mediamtx.yaml:ro
-{% if mediamtx_record_enabled %}
-      - {{ mediamtx_data_dir }}/recordings:/var/lib/mediamtx/recordings
-{% endif %}
-{% if mediamtx_fallback.enabled | default(false) %}
-      - {{ mediamtx_fallback.host_path }}:/media:ro
-{% endif %}
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
+      - {{ mediamtx_project_dir }}/mediamtx.yml:/mediamtx.yml:ro
+      - {{ mediamtx_container_data_dir }}:/var/lib/mediamtx
+      - /etc/letsencrypt/live/{{ mediamtx_domain }}/fullchain.pem:/server.crt:ro
+      - /etc/letsencrypt/live/{{ mediamtx_domain }}/privkey.pem:/server.key:ro
+    ports:
+      - "1935:1935"
+      - "1936:1936"
+      - "127.0.0.1:8888:8888"
+      - "127.0.0.1:9997:9997"

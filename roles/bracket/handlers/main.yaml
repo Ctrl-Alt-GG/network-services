@@ -1,12 +1,12 @@
 ---
-- name: Restorecon lancache
-  ansible.builtin.command: restorecon -Rv /srv/lancache
+- name: Restorecon bracket
+  ansible.builtin.command: "restorecon -Rv {{ bracket_project_dir }}"
   changed_when: false
   when: ansible_selinux.status == 'enabled'
 
-- name: Restart lancache
+- name: Restart bracket
   community.docker.docker_compose_v2:
-    project_src: /opt/lancache
+    project_src: "{{ bracket_project_dir }}"
     state: restarted
 
 - name: Restart auditd

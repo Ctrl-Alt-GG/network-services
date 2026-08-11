@@ -1,6 +1,6 @@
 # Network Services
 
-Ansible playbooks for deploying DDI (DNS, DHCP, NTP), LANcache, LibreNMS monitoring, MediaMTX streaming, and baseline hardening on Rocky Linux 9/10 hosts.
+Ansible playbooks for deploying DDI (DNS, DHCP, NTP), Bracket, MediaMTX streaming, and baseline hardening on Rocky Linux 9/10 hosts.
 
 ## Prerequisites
 
@@ -16,8 +16,8 @@ ansible-galaxy collection install -r requirements.yaml
 
 ## Quick Start
 
-1. **Edit the inventory** — add your hosts under the appropriate groups in `inventory.yaml`
-1. **Create host_vars** — for each host, create `host_vars/<hostname>.yaml`:
+1. Edit the inventory and add hosts to groups in `inventory.yaml`
+1. Create `host_vars/<hostname>.yaml` per host:
 
 ```yaml
 ---
@@ -27,23 +27,14 @@ ansible_ssh_private_key_file: ~/.ssh/id_ed25519
 ...
 ```
 
-1. **Customise group_vars** — edit the files under `group_vars/` (see below)
-1. **Run a playbook**:
+1. Edit `group_vars/` for environment-specific values
+1. Run the matching playbook:
 
 ```bash
 ansible-playbook ddi.yaml        # DNS + DHCP + NTP
 ansible-playbook sshjump.yaml    # SSH jump host (base + users only)
-ansible-playbook librenms.yaml   # LibreNMS monitoring stack
-ansible-playbook lancache.yaml   # LANcache content caching proxy
-ansible-playbook mediamtx.yaml   # MediaMTX streaming/restreaming
-```
-
-### Bootstrapping a new machine
-
-If the target hasn't been configured for Ansible yet, run the interactive bootstrap playbook first. It creates an `ansible` user with SSH keys and passwordless sudo:
-
-```bash
-ansible-playbook ansible-setup.yaml
+ansible-playbook bracket.yaml    # Bracket + nginx reverse proxy
+ansible-playbook mediamtx.yaml   # MediaMTX + nginx reverse proxy
 ```
 
 ## Inventory Layout
@@ -54,175 +45,77 @@ all:
     dns:      # Unbound DNS resolvers
     dhcp:     # Kea DHCP servers
     ntp:      # Chrony NTP servers
-    librenms: # LibreNMS monitoring
-    lancache: # LANcache content caching
+    bracket:  # Bracket application host
     mediamtx: # MediaMTX streaming server
     other:    # SSH jump hosts, etc.
 ```
 
-A host can belong to multiple groups (e.g., `ddi-01` is in `dns`, `dhcp`, and `ntp`). The `ddi.yaml` playbook targets each group separately with the matching role.
+  ## Bracket Deployment Notes
 
-## Configuration Reference
+  The Bracket role deploys Docker Compose based on the official Bracket Docker docs:
 
-### All hosts — `group_vars/all.yaml`
+  - Frontend container on loopback `127.0.0.1:3000`
+  - Backend container on loopback `127.0.0.1:8400`
+  - Postgres for persistent state
 
-| Variable | Description |
-| -------- | ----------- |
-| `users` | List of users to create on every host. Each entry has `name` and `ssh_key_url` (URL to their public SSH key). |
+  The role also configures a reusable reverse proxy role that provides:
 
-### Base role — `roles/base/defaults/main.yaml`
+  - Nginx TLS termination for `bracket_domain`
+  - `/api/` proxy to backend (`127.0.0.1:8400`)
+  - `/` proxy to frontend (`127.0.0.1:3000`)
+  - TLS termination using pre-provisioned certificate files
 
-| Variable | Default | Description |
-| -------- | ------- | ----------- |
-| `timezone` | `Europe/Budapest` | System timezone |
+  Deterministic per-host secrets are generated from machine identity:
 
-The base role applies to all hosts: SSH hardening, firewalld, SELinux enforcing, fail2ban, sysctl network protections, auditd, and common CLI tools.
+  - Postgres password
+  - JWT secret
+  - Initial Bracket admin password
 
-### DNS — `group_vars/dns.yaml`
+  Configure Bracket in `group_vars/bracket.yaml`.
 
-| Variable | Description |
-| -------- | ----------- |
-| `upstreams` | List of upstream DNS forwarder IPs |
-| `lancache.enabled` | Set `true` to enable LANcache domain redirects |
-| `lancache.ipaddrs` | LANcache server IPs (used when enabled) |
-| `private_zones` | List of private DNS zones (see below) |
+## MediaMTX Deployment Notes
 
-**Private zones** let you host internal DNS records. Each zone supports:
+The MediaMTX role now deploys:
 
-```yaml
-private_zones:
-  - name: home.lab                              # Zone domain (required)
-    records:                                     # A, AAAA, CNAME, MX, TXT, SRV, etc.
-      - "server.home.lab.  IN A 192.168.1.10"
-      - "db.home.lab.      IN A 192.168.1.11"
-    reverse_zone: 1.168.192.in-addr.arpa        # Optional: reverse DNS zone
-    ptr_records:                                  # Optional: PTR records
-      - "10.1.168.192.in-addr.arpa.  IN PTR server.home.lab."
-    transparent: false                            # false (default) = NXDOMAIN for undefined names
-                                                  # true = fall through to upstream forwarders
+- MediaMTX via Docker Compose at `/opt/mediamtx`
+- Reusable `reverse_proxy` role site config at `/etc/nginx/conf.d/mediamtx.conf`
+- TLS-enabled proxy expecting pre-provisioned certificate files
+
+Compose bindings:
+
+- `1935/tcp` and `1936/tcp` exposed publicly (RTMP/RTMPS)
+- `8888/tcp` and `9997/tcp` bound to loopback only
+
+Nginx provides:
+
+- HTTPS termination for `mediamtx_domain`
+- `/api/` proxy to `127.0.0.1:9997` with source IP allow-list
+- `/` proxy to `127.0.0.1:8888` with strict CORS controls
+
+Certificate behavior:
+
+- Roles do not request certificates automatically.
+- If certificate files are missing, the role fails with guidance to provision `/etc/letsencrypt/live/<domain>/fullchain.pem` and `privkey.pem` manually.
+
+## Variables
+
+Primary vars live in `group_vars/mediamtx.yaml`:
+
+- `mediamtx_domain`
+- `mediamtx_certbot_email` (compatibility variable, not used for automatic issuance)
+- `mediamtx_admin_password`
+- `mediamtx_streamer_password`
+- `mediamtx_ingest_password`
+- `mediamtx_youtube_stream_key`
+- `mediamtx_twitch_stream_key`
+- `mediamtx_api_allow_ip`
+
+Use `ansible-vault` for all passwords and stream keys.
+
+## Bootstrap
+
+For first-time machine setup, run:
+
+```bash
+ansible-playbook ansible-setup.yaml
 ```
-
-### DHCP — `group_vars/dhcp.yaml`
-
-| Variable | Description |
-| -------- | ----------- |
-| `interfaces` | Network interfaces Kea should listen on (e.g., `["eno1"]`) |
-| `subnets` | List of CIDR ranges to serve (e.g., `["192.168.128.0/24"]`). Pool ranges, router, and gateway are **auto-calculated** from CIDR. |
-| `dns_servers` | DNS servers pushed to clients |
-| `ntp_servers` | NTP servers pushed to clients |
-
-Pool calculation from CIDR: first usable → pool start, last usable → router, last usable minus one → pool end.
-
-### NTP — `group_vars/ntp.yaml`
-
-| Variable | Description |
-| -------- | ----------- |
-| `ntp_upstreams` | List of upstream time servers. Each has `host`, `type` (default `server`), and `nts` (`true` to enable NTS authentication). |
-| `ntp_allow` | CIDRs allowed to query this NTP server (e.g., `["192.168.0.0/16"]`) |
-
-### LibreNMS — `group_vars/librenms.yaml`
-
-| Variable | Description |
-| -------- | ----------- |
-| `librenms_domain` | FQDN for the Nginx vhost (e.g., `librenms.example.com`) |
-| `librenms_db_password` | MariaDB password — **change this** |
-| `librenms_snmp_community` | SNMP community string — **change this** |
-| `librenms_admin_user` | Initial web admin username |
-| `librenms_admin_password` | Initial web admin password — **change this** |
-
-Additional tunables are in `roles/librenms/defaults/main.yaml` (PHP version, install dir, DB host/name/user, PHP-FPM pool sizing).
-
-### LANcache — `group_vars/lancache.yaml`
-
-| Variable | Description |
-| -------- | ----------- |
-| `lancache_cache_dir` | Path to the cache data directory (default: `/srv/lancache/data`) |
-| `lancache_logs_dir` | Path to the cache logs directory (default: `/srv/lancache/logs`) |
-| `lancache_cache_disk_size` | Maximum cache size (default: `500g`) |
-| `lancache_upstream_dns` | DNS server the cache uses to resolve origins (default: `1.1.1.1`) |
-
-Additional tunables in `roles/lancache/defaults/main.yaml` (container images, `cache_max_age`).
-
-**Two-part setup** — LANcache requires both:
-
-1. The **lancache role** on the cache host (this section) — runs the Docker-based caching proxy
-2. The **DNS role** with `lancache.enabled: true` in `group_vars/dns.yaml` — redirects game CDN domains to the cache host's IP via `lancache.ipaddrs`
-
-```yaml
-# group_vars/dns.yaml — point DNS at your LANcache host
-lancache:
-  enabled: true
-  ipaddrs:
-    - 192.168.1.50   # IP of your lancache host
-```
-
-### MediaMTX — `group_vars/mediamtx.yaml`
-
-| Variable | Description |
-| -------- | ----------- |
-| `mediamtx_ingest.path` | Stream path name (default: `live`) |
-| `mediamtx_ingest.stream_key` | Authentication key for publishers — **change this** |
-| `mediamtx_restream_destinations` | Platform configs (twitch, youtube, kick) with `enabled`, `url`, `stream_key` |
-| `mediamtx_fallback.enabled` | Play fallback video when no live stream (default: `false`) |
-| `mediamtx_fallback.video_path` | Path to fallback video inside container |
-| `mediamtx_fallback.host_path` | Host directory containing the fallback video |
-
-Additional tunables in `roles/mediamtx/defaults/main.yaml` (ports, recording, HLS, API).
-
-**Usage**: Configure your streaming software (OBS, etc.) to publish to `rtmp://<server>:1935/live` with the stream key. The stream is automatically forwarded to all enabled platforms.
-
-## What Each Role Does
-
-| Role | Services | Hardening |
-| ---- | -------- | --------- |
-| **base** | SSH, firewalld, fail2ban | SELinux enforcing, sysctl network protection, auditd rules, password-auth disabled |
-| **users** | Creates users with SSH keys from remote URLs | Users added to `wheel` group |
-| **dns** | Unbound (forwarding + private zones + optional LANcache) | DNSSEC validation, `private-address` rebind protection, firewalld, auditd |
-| **dhcp** | Kea DHCPv4 + control agent | Systemd sandboxing (`NoNewPrivileges`, `ProtectSystem=strict`), firewalld, auditd |
-| **ntp** | Chrony (with optional NTS) | Firewalld, auditd |
-| **librenms** | Nginx, PHP-FPM, MariaDB, SNMP, LibreNMS | SELinux booleans + file contexts, firewalld, auditd |
-| **docker** | Docker CE, docker-compose-plugin | Audit rules for Docker binaries and config |
-| **lancache** | lancachenet/monolithic + sniproxy (via docker role) | SELinux container contexts, firewalld, auditd |
-| **mediamtx** | MediaMTX streaming server (via docker role) | SELinux container contexts, firewalld, auditd |
-
-## Project Structure
-
-```text
-├── ansible.cfg              # Inventory path, SSH pipelining
-├── inventory.yaml           # Host groups
-├── requirements.yaml        # Ansible Galaxy collections
-├── ddi.yaml                 # Playbook: DNS + DHCP + NTP
-├── sshjump.yaml             # Playbook: SSH jump host
-├── librenms.yaml            # Playbook: LibreNMS
-├── lancache.yaml            # Playbook: LANcache
-├── mediamtx.yaml            # Playbook: MediaMTX streaming
-├── ansible-setup.yaml       # Playbook: bootstrap new machine
-├── group_vars/
-│   ├── all.yaml             # Users (all hosts)
-│   ├── dns.yaml             # Upstreams, LANcache, private zones
-│   ├── dhcp.yaml            # Interfaces, subnets, DNS/NTP servers
-│   ├── ntp.yaml             # Upstream time servers, allowed CIDRs
-│   ├── librenms.yaml        # Domain, DB/SNMP/admin credentials
-│   ├── lancache.yaml        # Cache dir, size, upstream DNS
-│   └── mediamtx.yaml        # Ingest config, restream destinations, fallback
-├── host_vars/
-│   └── <hostname>.yaml      # Per-host connection details
-└── roles/
-    ├── base/                # OS hardening
-    ├── users/               # User creation
-    ├── dns/                 # Unbound
-    ├── dhcp/                # Kea DHCP
-    ├── ntp/                 # Chrony
-    ├── librenms/            # LibreNMS stack
-    ├── docker/              # Docker CE (shared)
-    ├── lancache/            # LANcache Docker stack
-    └── mediamtx/            # MediaMTX streaming
-```
-
-## Tips
-
-- **Dry run**: `ansible-playbook ddi.yaml --check --diff` to preview changes without applying
-- **Single host**: `ansible-playbook ddi.yaml --limit ddi-01` to target one host
-- **Debug DNS**: Set `verbosity: 2` in the Unbound template, or use `unbound-control log_queries on` on the host
-- **Debug DHCP**: Leases are in `/var/lib/kea/kea-leases4.csv`, logs in `/var/log/kea/`
-- **Secrets**: Consider using `ansible-vault encrypt_string` for passwords in `group_vars/librenms.yaml`

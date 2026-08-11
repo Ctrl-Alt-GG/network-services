@@ -1,9 +1,10 @@
 # {{ansible_managed}}
 server:
-  interface: 0.0.0.0
-  interface: ::0
+{% for interface in unbound_listen_interfaces %}
+  interface: {{ interface }}
+{% endfor %}
   do-ip4: yes
-  do-ip6: yes
+  do-ip6: no
   do-udp: yes
   do-tcp: yes
 
@@ -13,85 +14,78 @@ server:
   pidfile: "/var/run/unbound/unbound.pid"
 
   # Tuning for performance
-  num-threads: 4
-  so-reuseport: yes
-  msg-cache-size: 1024m
-  rrset-cache-size: 2048m
-  msg-cache-slabs: 4
-  rrset-cache-slabs: 4
-  infra-cache-slabs: 4
-  key-cache-slabs: 4
-  outgoing-range: 8192
-  num-queries-per-thread: 4096
-  prefetch: yes
-  prefetch-key: yes
-  rrset-roundrobin: yes
-  serve-expired: yes
-  serve-expired-ttl: 86400
+  num-threads: {{ unbound_num_threads }}
+  so-reuseport: {{ unbound_so_reuseport | ternary('yes', 'no') }}
+  msg-cache-size: {{ unbound_msg_cache_size }}
+  rrset-cache-size: {{ unbound_rrset_cache_size }}
+  msg-cache-slabs: {{ unbound_msg_cache_slabs }}
+  rrset-cache-slabs: {{ unbound_rrset_cache_slabs }}
+  infra-cache-slabs: {{ unbound_infra_cache_slabs }}
+  key-cache-slabs: {{ unbound_key_cache_slabs }}
+  outgoing-range: {{ unbound_outgoing_range }}
+  num-queries-per-thread: {{ unbound_num_queries_per_thread }}
+  prefetch: {{ unbound_prefetch | ternary('yes', 'no') }}
+  prefetch-key: {{ unbound_prefetch_key | ternary('yes', 'no') }}
+  rrset-roundrobin: {{ unbound_rrset_roundrobin | ternary('yes', 'no') }}
+  serve-expired: {{ unbound_serve_expired | ternary('yes', 'no') }}
+  serve-expired-ttl: {{ unbound_serve_expired_ttl }}
 
   # Privacy and hardening
-  qname-minimisation: yes
-  harden-glue: yes
-  harden-dnssec-stripped: yes
-  harden-below-nxdomain: yes
-  harden-algo-downgrade: yes
-  aggressive-nsec: yes
-  hide-identity: yes
-  hide-version: yes
-  hide-trustanchor: yes
-  hide-http-user-agent: yes
-  minimal-responses: yes
-  deny-any: yes
-  trust-anchor-signaling: yes
-  root-key-sentinel: yes
-  val-clean-additional: yes
-  val-permissive-mode: no
+  qname-minimisation: {{ unbound_qname_minimisation | ternary('yes', 'no') }}
+  harden-glue: {{ unbound_harden_glue | ternary('yes', 'no') }}
+  harden-dnssec-stripped: {{ unbound_harden_dnssec_stripped | ternary('yes', 'no') }}
+  harden-below-nxdomain: {{ unbound_harden_below_nxdomain | ternary('yes', 'no') }}
+  harden-algo-downgrade: {{ unbound_harden_algo_downgrade | ternary('yes', 'no') }}
+  aggressive-nsec: {{ unbound_aggressive_nsec | ternary('yes', 'no') }}
+  hide-identity: {{ unbound_hide_identity | ternary('yes', 'no') }}
+  hide-version: {{ unbound_hide_version | ternary('yes', 'no') }}
+  hide-trustanchor: {{ unbound_hide_trustanchor | ternary('yes', 'no') }}
+  hide-http-user-agent: {{ unbound_hide_http_user_agent | ternary('yes', 'no') }}
+  minimal-responses: {{ unbound_minimal_responses | ternary('yes', 'no') }}
+  deny-any: {{ unbound_deny_any | ternary('yes', 'no') }}
+  trust-anchor-signaling: {{ unbound_trust_anchor_signaling | ternary('yes', 'no') }}
+  root-key-sentinel: {{ unbound_root_key_sentinel | ternary('yes', 'no') }}
+  val-clean-additional: {{ unbound_val_clean_additional | ternary('yes', 'no') }}
+  val-permissive-mode: {{ unbound_val_permissive_mode | ternary('yes', 'no') }}
 
   # Private address ranges — refuse to return RFC1918 from public names
-  private-address: 10.0.0.0/8
-  private-address: 172.16.0.0/12
-  private-address: 192.168.0.0/16
-  private-address: 169.254.0.0/16
-  private-address: fd00::/8
-  private-address: fe80::/10
+{% for private_address in unbound_private_addresses %}
+  private-address: {{ private_address }}
+{% endfor %}
+{% for private_domain in unbound_private_domains %}
+  private-domain: "{{ private_domain }}"
+{% endfor %}
+{% for insecure_domain in unbound_domain_insecure %}
+  domain-insecure: "{{ insecure_domain }}"
+{% endfor %}
+{% if unbound_enable_insecure_lan_zones or (unbound_authoritative_reverse_zones | length > 0) %}
+  insecure-lan-zones: yes
+{% endif %}
 
   # Detect poisoning: log warning if more than threshold unsolicited replies
-  unwanted-reply-threshold: 10000
+  unwanted-reply-threshold: {{ unbound_unwanted_reply_threshold }}
 
   # Access control
   access-control: 127.0.0.0/8 allow
-  access-control: ::1/128 allow
   access-control: 192.168.0.0/16 allow
-  access-control: 0.0.0.0/0 refuse
-  access-control: ::/0 refuse
 
   # DNSSEC trust anchor
   auto-trust-anchor-file: "/var/lib/unbound/root.key"
 
   # Reasonable EDNS size to reduce fragmentation
-  edns-buffer-size: 1232
-  max-udp-size: 1232
+  edns-buffer-size: {{ unbound_edns_buffer_size }}
+  max-udp-size: {{ unbound_max_udp_size }}
 
   # Logging (set verbosity to 2 for debugging)
-  verbosity: 1
-  log-queries: no
-  log-replies: no
-  log-servfail: yes
-  logfile: ""
-  use-syslog: yes
-
-  # Include private zone definitions
-  include: "/etc/unbound/zones.d/*.conf"
-
-{% if lancache.enabled | default(false) %}
-  # Include extra LANcache overrides
-  include: "/etc/unbound/lancache.d/*.conf"
-{% endif %}
+  verbosity: {{ unbound_verbosity }}
+  log-queries: {{ unbound_log_queries | ternary('yes', 'no') }}
+  log-replies: {{ unbound_log_replies | ternary('yes', 'no') }}
+  log-servfail: {{ unbound_log_servfail | ternary('yes', 'no') }}
+  use-syslog: {{ unbound_use_syslog | ternary('yes', 'no') }}
 
 remote-control:
     control-enable: yes
     control-interface: 127.0.0.1
-    control-interface: ::1
     control-port: 8953
     server-key-file: "/etc/unbound/unbound_server.key"
     server-cert-file: "/etc/unbound/unbound_server.pem"
@@ -101,7 +95,12 @@ remote-control:
 # Forward all queries to upstream resolvers
 forward-zone:
   name: "."
-  forward-first: yes
+  forward-first: {{ unbound_forward_first | ternary('yes', 'no') }}
 {% for ip in upstreams %}
   forward-addr: {{ ip }}
 {% endfor %}
+
+include-toplevel: "{{ unbound_auth_include_glob }}"
+{% if lancache.enabled | default(false) %}
+include-toplevel: "{{ unbound_lancache_include_glob }}"
+{% endif %}

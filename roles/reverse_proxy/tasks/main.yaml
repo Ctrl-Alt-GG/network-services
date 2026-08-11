@@ -1,0 +1,68 @@
+---
+- name: Install reverse proxy packages
+  ansible.builtin.package:
+    name:
+      - nginx
+    state: present
+
+- name: Ensure nginx can open outbound proxy connections on SELinux systems
+  ansible.posix.seboolean:
+    name: httpd_can_network_connect
+    state: true
+    persistent: true
+  when: ansible_selinux.status == 'enabled'
+
+- name: Check whether TLS certificate exists
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ reverse_proxy_domain }}/fullchain.pem"
+  register: reverse_proxy_fullchain_stat
+
+- name: Fail when TLS certificate is missing
+  ansible.builtin.fail:
+    msg: >-
+      Missing certificate for {{ reverse_proxy_domain }}.
+      Provision /etc/letsencrypt/live/{{ reverse_proxy_domain }}/fullchain.pem
+      and /etc/letsencrypt/live/{{ reverse_proxy_domain }}/privkey.pem manually before running this role.
+  when: not reverse_proxy_fullchain_stat.stat.exists
+
+- name: Deploy nginx reverse proxy site configuration
+  ansible.builtin.template:
+    src: "{{ reverse_proxy_site_template }}"
+    dest: "/etc/nginx/conf.d/{{ reverse_proxy_site_conf }}"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart nginx
+
+- name: Validate nginx configuration
+  ansible.builtin.command: nginx -t -c /etc/nginx/nginx.conf
+  changed_when: false
+
+- name: Ensure nginx is enabled and started
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Allow HTTP and HTTPS through firewall
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    state: enabled
+    permanent: true
+    immediate: true
+  loop:
+    - http
+    - https
+
+- name: Add reverse proxy audit rules
+  ansible.builtin.blockinfile:
+    path: "/etc/audit/rules.d/{{ reverse_proxy_site_name }}-proxy.rules"
+    create: true
+    mode: '0640'
+    owner: root
+    group: root
+    block: |
+      -w /etc/nginx/conf.d/{{ reverse_proxy_site_conf }} -p wa -k {{ reverse_proxy_site_name }}_nginx
+      -w /etc/letsencrypt/live/{{ reverse_proxy_domain }}/ -p wa -k {{ reverse_proxy_site_name }}_tls
+  notify: Restart auditd
+...

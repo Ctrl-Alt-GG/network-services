@@ -1,0 +1,10 @@
+---
+- name: Restart nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+
+- name: Restart auditd
+  ansible.builtin.command: augenrules --load
+  changed_when: false
+...

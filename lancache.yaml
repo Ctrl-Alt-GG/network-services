@@ -1,9 +1,0 @@
----
-- name: "Deploy LANcache content caching"
-  hosts: lancache
-  roles:
-    - base
-    - users
-    - docker
-    - lancache
-...

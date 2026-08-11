@@ -1,0 +1,28 @@
+---
+bracket_domain: bracket.example.com
+bracket_project_dir: /opt/bracket
+bracket_backend_static_dir: "{{ bracket_project_dir }}/backend/static"
+bracket_postgres_data_dir: "{{ bracket_project_dir }}/postgres"
+
+bracket_frontend_image: ghcr.io/evroon/bracket-frontend
+bracket_backend_image: ghcr.io/evroon/bracket-backend
+bracket_api_base_url: "https://{{ bracket_domain }}/api"
+bracket_cors_origins: "https://{{ bracket_domain }}"
+bracket_postgres_image: postgres:18
+
+bracket_postgres_db: bracket_prod
+bracket_postgres_user: bracket_prod
+
+bracket_hcaptcha_site_key: ""
+bracket_allow_user_registration: true
+
+# Deterministic per-machine secrets are derived from this seed.
+# Defaults to machine-id and falls back to inventory hostname.
+bracket_secret_seed: "{{ ansible_machine_id | default(inventory_hostname) }}"
+
+# Reverse proxy integration
+bracket_reverse_proxy_site_name: bracket
+bracket_certbot_email: ""
+bracket_api_rate_limit: 20r/s
+bracket_api_rate_burst: 40
+...

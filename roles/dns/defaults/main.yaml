@@ -1,8 +1,62 @@
----
 cache_domains_repo: "https://github.com/uklans/cache-domains.git"
 cache_domains_branch: "master"
 lancache:
   enabled: false
   ipaddrs: []
-private_zones: []
+unbound_auth_include_glob: "/etc/unbound/auth.d/*.conf"
+unbound_lancache_include_glob: "/etc/unbound/lancache.d/*.conf"
+unbound_listen_interfaces:
+  - 127.0.0.1
+unbound_num_threads: 4
+unbound_so_reuseport: true
+unbound_msg_cache_size: 1024m
+unbound_rrset_cache_size: 2048m
+unbound_msg_cache_slabs: 4
+unbound_rrset_cache_slabs: 4
+unbound_infra_cache_slabs: 4
+unbound_key_cache_slabs: 4
+unbound_outgoing_range: 4096
+unbound_num_queries_per_thread: 2048
+unbound_prefetch: true
+unbound_prefetch_key: true
+unbound_rrset_roundrobin: true
+unbound_serve_expired: true
+unbound_serve_expired_ttl: 86400
+unbound_qname_minimisation: true
+unbound_harden_glue: true
+unbound_harden_dnssec_stripped: true
+unbound_harden_below_nxdomain: true
+unbound_harden_algo_downgrade: false
+unbound_aggressive_nsec: true
+unbound_hide_identity: true
+unbound_hide_version: true
+unbound_hide_trustanchor: true
+unbound_hide_http_user_agent: true
+unbound_minimal_responses: true
+unbound_deny_any: true
+unbound_trust_anchor_signaling: true
+unbound_root_key_sentinel: true
+unbound_val_clean_additional: true
+unbound_val_permissive_mode: false
+unbound_private_addresses:
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+  - 169.254.0.0/16
+  - ::ffff:0:0/96
+  - fd00::/8
+  - fe80::/10
+unbound_private_domains: []
+unbound_domain_insecure: []
+unbound_authoritative_reverse_zones: []
+unbound_enable_insecure_lan_zones: false
+unbound_unwanted_reply_threshold: 10000000
+unbound_edns_buffer_size: 1232
+unbound_max_udp_size: 1232
+unbound_verbosity: 1
+unbound_log_queries: false
+unbound_log_replies: false
+unbound_log_servfail: true
+unbound_use_syslog: true
+unbound_forward_first: true
 ...

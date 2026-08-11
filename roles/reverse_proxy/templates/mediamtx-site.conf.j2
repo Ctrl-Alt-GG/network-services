@@ -1,0 +1,97 @@
+# {{ansible_managed}}
+limit_req_zone $binary_remote_addr zone={{ reverse_proxy_site_name }}_api_limit:10m rate={{ reverse_proxy_api_rate_limit }};
+
+# Reflect only explicitly trusted frontend origins.
+map $http_origin $hls_cors_origin {
+    default "";
+{% for origin in reverse_proxy_trusted_origins %}
+    "{{ origin }}" $http_origin;
+{% endfor %}
+}
+
+# Credentials are permitted only for trusted origins.
+map $hls_cors_origin $hls_cors_credentials {
+    default "true";
+    "" "";
+}
+
+# Prevent MediaMTX cookie-check redirects from entering browser caches.
+map $upstream_status $hls_redirect_cache_control {
+    default "";
+    ~^3 "no-store";
+}
+
+server {
+    listen 443 ssl http2;
+    server_name {{ reverse_proxy_domain }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ reverse_proxy_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ reverse_proxy_domain }}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+{% if reverse_proxy_enable_hsts %}
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+{% endif %}
+    add_header X-Content-Type-Options "nosniff" always;
+
+    location {{ reverse_proxy_api_path_prefix }} {
+{% if reverse_proxy_api_allowlist | length > 0 %}
+{% for ip in reverse_proxy_api_allowlist %}
+        allow {{ ip }};
+{% endfor %}
+        deny all;
+{% endif %}
+        limit_req zone={{ reverse_proxy_site_name }}_api_limit burst={{ reverse_proxy_api_rate_burst }} nodelay;
+
+        proxy_pass {{ reverse_proxy_backend_upstream }}/;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass {{ reverse_proxy_frontend_upstream }}/;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+
+        access_log off;
+
+        limit_except GET HEAD { deny all; }
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Discard MediaMTX's origin-dependent CORS values.
+        proxy_hide_header Access-Control-Allow-Origin;
+        proxy_hide_header Access-Control-Allow-Credentials;
+
+        # Emit a deterministic CORS policy.
+        add_header Access-Control-Allow-Origin $hls_cors_origin always;
+        add_header Access-Control-Allow-Credentials $hls_cors_credentials always;
+        add_header Vary "Origin" always;
+
+        # This is emitted only for upstream 3xx responses.
+        add_header Cache-Control $hls_redirect_cache_control always;
+
+        # Location-level add_header disables parent inheritance,
+        # so repeat the security headers here.
+        add_header X-Content-Type-Options "nosniff" always;
+{% if reverse_proxy_enable_hsts %}
+        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+{% endif %}
+
+        autoindex off;
+    }
+}
+
+server {
+    listen 80;
+    server_name {{ reverse_proxy_domain }};
+
+    return 301 https://$host$request_uri;
+}

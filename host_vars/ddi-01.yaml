@@ -2,4 +2,7 @@
 ansible_host: 192.168.130.1
 ansible_user: tormakris
 ansible_ssh_private_key_file: /home/tormakris/.ssh/windozkey
+unbound_listen_interfaces:
+  - 127.0.0.1
+  - 192.168.130.1
 ...

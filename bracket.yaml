@@ -1,0 +1,9 @@
+---
+- name: "Deploy Bracket application"
+  hosts: bracket
+  roles:
+    - base
+    - users
+    - docker
+    - bracket
+...
