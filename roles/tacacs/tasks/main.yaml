@@ -1,0 +1,225 @@
+---
+# --- Validation ---
+- name: Fail when no TACACS+ clients are configured
+  ansible.builtin.assert:
+    that:
+      - tacacs_clients is defined
+      - tacacs_clients | length > 0
+    fail_msg: "Configure at least one device in tacacs_clients before deploying TACACS+."
+
+- name: Validate TACACS+ client definitions
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.name is match('^[A-Za-z0-9_-]+$')
+      - item.address is defined
+      - item.address | ansible.utils.ipaddr('address') is not none
+    fail_msg: "Each TACACS+ client requires a safe name and an IP address."
+  loop: "{{ tacacs_clients }}"
+  loop_control:
+    label: "{{ item.name | default('unnamed') }}"
+
+- name: Validate TACACS+ client names are unique
+  ansible.builtin.assert:
+    that:
+      - tacacs_clients | map(attribute='name') | unique | length == tacacs_clients | length
+    fail_msg: "Each TACACS+ client name must be unique because it seeds that device's key."
+
+- name: Validate TACACS+ shared secret
+  ansible.builtin.assert:
+    that:
+      - tacacs_shared_secret is defined
+      - tacacs_shared_secret | length >= 32
+      - tacacs_shared_secret != 'change-this-to-a-long-random-secret'
+      - tacacs_key_length | int >= 16
+      - tacacs_key_length | int <= 64
+    fail_msg: "Set tacacs_shared_secret to a unique secret of at least 32 characters."
+  no_log: true
+
+- name: Derive per-client TACACS+ keys
+  ansible.builtin.set_fact:
+    tacacs_client_keys: >-
+      {{
+        tacacs_client_keys | default([])
+        + [item | combine({'key': (tacacs_shared_secret ~ ':' ~ item.name)
+                                  | hash('sha256')
+                                  | truncate(tacacs_key_length | int, true, '', 0)})]
+      }}
+  loop: "{{ tacacs_clients }}"
+  loop_control:
+    label: "{{ item.name }}"
+  no_log: true
+
+- name: Validate TACACS+ allowed login group
+  ansible.builtin.assert:
+    that:
+      - tacacs_allowed_group is defined
+      - tacacs_allowed_group is match('^[A-Za-z_][A-Za-z0-9_-]*$')
+    fail_msg: "Set tacacs_allowed_group to a valid local Linux group name."
+
+- name: Validate TACACS+ allowed user list
+  ansible.builtin.assert:
+    that:
+      - tacacs_allowed_users is defined
+      - tacacs_allowed_users is iterable
+      - tacacs_allowed_users is not string
+      - tacacs_allowed_users | length > 0
+    fail_msg: "Set tacacs_allowed_users to a non-empty list of valid local Linux usernames."
+
+- name: Validate TACACS+ allowed usernames
+  ansible.builtin.assert:
+    that:
+      - item is match('^[A-Za-z_][A-Za-z0-9_-]*[$]?$')
+    fail_msg: "Each TACACS+ allowed user must be a valid local Linux username."
+  loop: "{{ tacacs_allowed_users }}"
+
+- name: Ensure TACACS+ login group exists
+  ansible.builtin.group:
+    name: "{{ tacacs_allowed_group }}"
+    state: present
+
+- name: Check TACACS+ allowed users exist
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ item }}"
+  loop: "{{ tacacs_allowed_users }}"
+
+- name: Add TACACS+ allowed users to login group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: "{{ tacacs_allowed_group }}"
+    append: true
+    state: present
+  loop: "{{ tacacs_allowed_users }}"
+
+# --- Package Installation ---
+- name: Require Rocky Linux 9 TACACS+ package support
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Rocky'
+      - ansible_distribution_major_version == '9'
+    fail_msg: >-
+      The EPEL tacacs package is currently available only for Rocky Linux 9.
+      Rocky Linux 10 requires an approved maintained package source before deployment.
+
+- name: Install TACACS+ server from EPEL
+  ansible.builtin.package:
+    name: "{{ tacacs_package_name }}"
+    state: present
+
+- name: Check TACACS+ daemon binary
+  ansible.builtin.stat:
+    path: "{{ tacacs_binary_path }}"
+  register: tacacs_binary
+
+- name: Fail when EPEL TACACS+ daemon binary is unavailable
+  ansible.builtin.assert:
+    that:
+      - tacacs_binary.stat.exists
+      - tacacs_binary.stat.executable
+    fail_msg: "The {{ tacacs_package_name }} package did not provide {{ tacacs_binary_path }}."
+
+- name: Create TACACS+ service group
+  ansible.builtin.group:
+    name: "{{ tacacs_group }}"
+    system: true
+    state: present
+
+- name: Create TACACS+ service account
+  ansible.builtin.user:
+    name: "{{ tacacs_user }}"
+    group: "{{ tacacs_group }}"
+    system: true
+    create_home: false
+    shell: /sbin/nologin
+    state: present
+
+# --- Configuration ---
+- name: Ensure TACACS+ config directory exists
+  ansible.builtin.file:
+    path: "{{ tacacs_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ tacacs_group }}"
+    mode: '0750'
+
+- name: Deploy TACACS+ server configuration
+  ansible.builtin.template:
+    src: tac_plus.conf.j2
+    dest: "{{ tacacs_config_path }}"
+    owner: root
+    group: "{{ tacacs_group }}"
+    mode: '0640'
+    backup: true
+    validate: "{{ tacacs_binary_path }} -P -C %s"
+  no_log: true
+  notify: Restart tac_plus
+
+- name: Deploy TACACS+ systemd service
+  ansible.builtin.template:
+    src: tac_plus.service.j2
+    dest: "/etc/systemd/system/{{ tacacs_service_name }}.service"
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Systemctl daemon-reload
+    - Restart tac_plus
+
+- name: Configure PAM service for TACACS+
+  ansible.builtin.template:
+    src: pam_tac_plus.j2
+    dest: /etc/pam.d/tac_plus
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart tac_plus
+
+# --- Firewall ---
+- name: Allow TACACS+ through firewall
+  ansible.posix.firewalld:
+    port: "{{ tacacs_listen_port }}/tcp"
+    state: enabled
+    permanent: true
+    immediate: true
+
+# --- Audit Rules ---
+- name: Add TACACS+ audit rules
+  ansible.builtin.blockinfile:
+    path: /etc/audit/rules.d/tacacs.rules
+    create: true
+    mode: '0640'
+    owner: root
+    group: root
+    block: |
+      -w {{ tacacs_config_path }} -p wa -k tacacs_config
+      -w /etc/pam.d/tac_plus -p wa -k tacacs_pam
+      -w /etc/systemd/system/{{ tacacs_service_name }}.service -p wa -k tacacs_service
+      -w /etc/systemd/system/{{ tacacs_service_name }}.service.d/ -p wa -k tacacs_service
+  notify: Restart auditd
+
+# --- Systemd Hardening ---
+- name: Create TACACS+ systemd override directory
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ tacacs_service_name }}.service.d"
+    state: directory
+    mode: '0755'
+
+- name: Configure TACACS+ systemd security
+  ansible.builtin.template:
+    src: security.conf.j2
+    dest: "/etc/systemd/system/{{ tacacs_service_name }}.service.d/security.conf"
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Systemctl daemon-reload
+    - Restart tac_plus
+
+# --- Enable Service ---
+- name: Enable and start TACACS+ server
+  ansible.builtin.systemd:
+    name: "{{ tacacs_service_name }}"
+    enabled: true
+    state: started
+...

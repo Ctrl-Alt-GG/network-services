@@ -1,0 +1,12 @@
+# {{ansible_managed}}
+{% for client in tacacs_client_keys %}
+# {{ client.name }}
+host = {{ client.address }} {
+  key = {{ client.key | to_json }}
+}
+{% endfor %}
+
+user = DEFAULT {
+  default service = permit
+  login = PAM
+}

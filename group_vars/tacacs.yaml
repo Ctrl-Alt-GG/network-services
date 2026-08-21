@@ -1,0 +1,40 @@
+---
+# Master key. Each device gets its own key derived from this value and its name:
+#   sha256("<tacacs_shared_secret>:<client name>") truncated to tacacs_key_length.
+# Keep this value in Ansible Vault in production.
+tacacs_shared_secret: "change-this-to-a-long-random-secret"
+
+# Each client must use a unique name and its management IP address.
+# The name seeds that device's key, so renaming a client changes its key.
+# Example:
+# tacacs_clients:
+#   - name: juniper-ex3300
+#     address: 192.0.2.10
+#   - name: juniper-srx340
+#     address: 192.0.2.11
+#   - name: arista-dcs-7050sx
+#     address: 192.0.2.12
+tacacs_clients:
+  - name: fw-edge
+    address: 192.168.133.0
+  - name: sw-01
+    address: 192.168.133.3
+  - name: sw-02
+    address: 192.168.133.5
+  - name: sw-03
+    address: 192.168.133.7
+  - name: sw-04
+    address: 192.168.133.9
+  - name: sw-05
+    address: 192.168.133.11
+  - name: sw-poe
+    address: 192.168.128.99
+  - name: rtr-core
+    address: 192.168.128.254
+
+# Local Linux accounts created by the users role authenticate through PAM.
+# Only users in this Linux group may authenticate to network devices through TACACS+.
+tacacs_allowed_group: networkadmins
+tacacs_allowed_users:
+  - tormakris
+...

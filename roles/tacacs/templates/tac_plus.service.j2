@@ -1,0 +1,18 @@
+# {{ansible_managed}}
+[Unit]
+Description=TACACS+ authentication server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ tacacs_user }}
+Group={{ tacacs_group }}
+ExecStart=/usr/sbin/tac_plus -G -s -C {{ tacacs_config_path }} -B {{ tacacs_listen_address }} -p {{ tacacs_listen_port }}
+Restart=on-failure
+RestartSec=5s
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

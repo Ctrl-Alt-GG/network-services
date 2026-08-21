@@ -21,6 +21,9 @@ all:
     bracket:
       hosts:
         bracket:
+    tacacs:
+      hosts:
+        tacacs:
     mediamtx:
       hosts:
         mediamtx:

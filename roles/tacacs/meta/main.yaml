@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  author: Ctrl-Alt-GG
+  description: Secure TACACS+ server role for Rocky Linux 9
+  company: Ctrl-Alt-GG
+  license: "All Rights Reserved"
+  min_ansible_version: "2.14"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+  galaxy_tags:
+    - networking
+    - tacacs
+
+dependencies: []
+
+collections:
+  - ansible.posix
+...

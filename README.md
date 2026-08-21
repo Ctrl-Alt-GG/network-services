@@ -35,6 +35,7 @@ ansible-playbook ddi.yaml        # DNS + DHCP + NTP
 ansible-playbook sshjump.yaml    # SSH jump host (base + users only)
 ansible-playbook bracket.yaml    # Bracket + nginx reverse proxy
 ansible-playbook mediamtx.yaml   # MediaMTX + nginx reverse proxy
+ansible-playbook tacacs.yaml     # TACACS+ authentication server
 ```
 
 ## Inventory Layout
@@ -47,6 +48,7 @@ all:
     ntp:      # Chrony NTP servers
     bracket:  # Bracket application host
     mediamtx: # MediaMTX streaming server
+    tacacs:   # TACACS+ authentication server
     other:    # SSH jump hosts, etc.
 ```
 
@@ -111,6 +113,42 @@ Primary vars live in `group_vars/mediamtx.yaml`:
 - `mediamtx_api_allow_ip`
 
 Use `ansible-vault` for all passwords and stream keys.
+
+## TACACS+ Deployment Notes
+
+The TACACS+ role installs EPEL's `tacacs` package on Rocky Linux 9 and authenticates
+local Linux accounts through PAM. It supports legacy-compatible authentication for
+Juniper EX3300, Juniper SRX340, and Arista DCS-7050SX devices. Configure it in
+`group_vars/tacacs.yaml`:
+
+- Set a unique shared secret of at least 32 characters. The supplied variable file is
+  plaintext for initial setup; encrypt it with `ansible-vault` before production use.
+- Every device receives its own key derived from that secret and the client name, so a
+  compromised device does not expose the others. Renaming a client changes its key.
+- Add each device management address to `tacacs_clients`. The role refuses to deploy
+  without an explicit client allowlist.
+- Set `tacacs_allowed_group` to the local Linux group allowed to log in to network
+  devices. The default is `networkadmins`; the TACACS+ role creates this group.
+- Set `tacacs_allowed_users` to the local Linux users that should be members of that
+  group. These users must exist before the TACACS+ role runs, such as accounts created
+  by the shared `users` role.
+- Maintain a separate local emergency administrator on every network device. This role
+  does not manage device configuration or fallback behavior.
+
+TACACS+ uses a shared secret to obscure packet bodies; it does not provide TLS. Place
+the server and device management interfaces on a trusted management network and apply
+network ACLs that allow TCP/49 only between the listed devices and this server.
+
+To read back the key to configure on a device, recompute the same derivation locally:
+
+```bash
+python3 -c 'import hashlib,sys; print(hashlib.sha256(f"{sys.argv[1]}:{sys.argv[2]}".encode()).hexdigest()[:32])' \
+  "$TACACS_SHARED_SECRET" sw-01
+```
+
+EPEL does not currently publish the `tacacs` package for Rocky Linux 10. The role
+therefore fails early on Rocky 10 rather than building the archived upstream source.
+Add an approved maintained package source before extending the deployment to Rocky 10.
 
 ## Bootstrap
 

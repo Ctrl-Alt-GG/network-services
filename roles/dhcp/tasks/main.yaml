@@ -74,19 +74,9 @@
 
 - name: Configure kea-dhcp4 systemd security
   ansible.builtin.copy:
+    src: security.conf
     dest: /etc/systemd/system/kea-dhcp4.service.d/security.conf
     mode: '0644'
-    content: |
-      [Service]
-      NoNewPrivileges=true
-      ProtectSystem=strict
-      ProtectHome=true
-      ProtectKernelTunables=true
-      ProtectKernelModules=true
-      ProtectControlGroups=true
-      ReadWritePaths=/var/log/kea /var/lib/kea /run/kea /var/run/kea
-      PrivateDevices=true
-      MemoryDenyWriteExecute=true
   notify:
     - Systemctl daemon-reload
     - Restart kea-dhcp4

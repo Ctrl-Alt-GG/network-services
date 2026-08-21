@@ -1,0 +1,5 @@
+# {{ansible_managed}}
+auth       include      system-auth
+account    required     pam_succeed_if.so quiet user ingroup {{ tacacs_allowed_group }}
+account    include      system-auth
+session    include      system-auth

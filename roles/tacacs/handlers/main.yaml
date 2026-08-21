@@ -1,0 +1,19 @@
+---
+- name: Restart tac_plus
+  ansible.builtin.systemd:
+    name: "{{ tacacs_service_name }}"
+    state: restarted
+
+- name: Restart auditd
+  ansible.builtin.command: augenrules --load
+  changed_when: false
+
+- name: Systemctl daemon-reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restorecon tacacs
+  ansible.builtin.command: "restorecon -R {{ tacacs_config_dir }}"
+  changed_when: false
+  when: ansible_selinux.status == 'enabled'
+...

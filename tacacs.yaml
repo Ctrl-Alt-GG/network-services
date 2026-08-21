@@ -1,0 +1,8 @@
+---
+- name: "Deploy TACACS+ server"
+  hosts: tacacs
+  roles:
+    - base
+    - users
+    - tacacs
+...
