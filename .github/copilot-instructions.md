@@ -76,6 +76,20 @@ ansible-playbook mediamtx.yaml
 ansible-playbook ansible-setup.yaml
 ```
 
+## Required YAML Validation
+
+After creating or modifying any YAML file, run the same repository-wide checks as CI
+from the repository root:
+
+```bash
+ansible-galaxy collection install -r requirements.yaml
+yamllint ./
+ansible-lint ./
+```
+
+Fix every finding and rerun both linters until they exit successfully. Do not finish
+a task that changes YAML while either check is failing.
+
 ## Adding a New Role
 
 1. Create `roles/<name>/{tasks,handlers,templates,meta,defaults}/main.yaml`
