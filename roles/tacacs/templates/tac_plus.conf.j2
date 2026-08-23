@@ -1,4 +1,7 @@
 # {{ansible_managed}}
+
+accounting file = /var/log/tac_plus/tac_plus.acct
+
 {% for client in tacacs_client_keys %}
 # {{ client.name }}
 host = {{ client.address }} {
@@ -8,5 +11,19 @@ host = {{ client.address }} {
 
 user = DEFAULT {
   default service = permit
-  login = PAM
+
+  login  = PAM
+  pap    = PAM
+
+  # Junos: fw-edge, sw-01..05, sw-poe
+  service = junos-exec {
+    default attribute = permit
+    local-user-name = remote
+  }
+
+  # Arista EOS: rtr-core
+  service = shell {
+    default attribute = permit
+    priv-lvl = 15
+  }
 }

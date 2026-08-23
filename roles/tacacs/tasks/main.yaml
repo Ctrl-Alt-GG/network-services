@@ -119,52 +119,18 @@
       - tacacs_binary.stat.executable
     fail_msg: "The {{ tacacs_package_name }} package did not provide {{ tacacs_binary_path }}."
 
-- name: Create TACACS+ service group
-  ansible.builtin.group:
-    name: "{{ tacacs_group }}"
-    system: true
-    state: present
-
-- name: Create TACACS+ service account
-  ansible.builtin.user:
-    name: "{{ tacacs_user }}"
-    group: "{{ tacacs_group }}"
-    system: true
-    create_home: false
-    shell: /sbin/nologin
-    state: present
-
 # --- Configuration ---
-- name: Ensure TACACS+ config directory exists
-  ansible.builtin.file:
-    path: "{{ tacacs_config_dir }}"
-    state: directory
-    owner: root
-    group: "{{ tacacs_group }}"
-    mode: '0750'
-
 - name: Deploy TACACS+ server configuration
   ansible.builtin.template:
     src: tac_plus.conf.j2
     dest: "{{ tacacs_config_path }}"
     owner: root
-    group: "{{ tacacs_group }}"
+    group: root
     mode: '0640'
     backup: true
     validate: "{{ tacacs_binary_path }} -P -C %s"
   no_log: true
   notify: Restart tac_plus
-
-- name: Deploy TACACS+ systemd service
-  ansible.builtin.template:
-    src: tac_plus.service.j2
-    dest: "/etc/systemd/system/{{ tacacs_service_name }}.service"
-    owner: root
-    group: root
-    mode: '0644'
-  notify:
-    - Systemctl daemon-reload
-    - Restart tac_plus
 
 - name: Configure PAM service for TACACS+
   ansible.builtin.template:
@@ -194,27 +160,7 @@
     block: |
       -w {{ tacacs_config_path }} -p wa -k tacacs_config
       -w /etc/pam.d/tac_plus -p wa -k tacacs_pam
-      -w /etc/systemd/system/{{ tacacs_service_name }}.service -p wa -k tacacs_service
-      -w /etc/systemd/system/{{ tacacs_service_name }}.service.d/ -p wa -k tacacs_service
   notify: Restart auditd
-
-# --- Systemd Hardening ---
-- name: Create TACACS+ systemd override directory
-  ansible.builtin.file:
-    path: "/etc/systemd/system/{{ tacacs_service_name }}.service.d"
-    state: directory
-    mode: '0755'
-
-- name: Configure TACACS+ systemd security
-  ansible.builtin.template:
-    src: security.conf.j2
-    dest: "/etc/systemd/system/{{ tacacs_service_name }}.service.d/security.conf"
-    owner: root
-    group: root
-    mode: '0644'
-  notify:
-    - Systemctl daemon-reload
-    - Restart tac_plus
 
 # --- Enable Service ---
 - name: Enable and start TACACS+ server

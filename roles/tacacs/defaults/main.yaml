@@ -1,11 +1,8 @@
 ---
 tacacs_listen_port: 49
 tacacs_listen_address: "0.0.0.0"
-tacacs_config_dir: /etc/tacacs+
-tacacs_config_path: "{{ tacacs_config_dir }}/tac_plus.conf"
+tacacs_config_path: /etc/tac_plus.conf
 tacacs_service_name: tac_plus
-tacacs_user: tacacs
-tacacs_group: tacacs
 tacacs_package_name: tacacs
 tacacs_binary_path: /usr/sbin/tac_plus
 tacacs_allowed_group: networkadmins
